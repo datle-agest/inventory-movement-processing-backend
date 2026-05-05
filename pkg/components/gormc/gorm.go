@@ -16,7 +16,7 @@ import (
 type GormDBType int
 
 const (
-	GormDBTypeSQLite GormDBType = iota + 1
+	GormDBTypePostgres GormDBType = iota + 1
 	GormDBTypeNotSupported
 )
 
@@ -161,7 +161,7 @@ func (gdb *gormDB) GetDB() *gorm.DB {
 func getDBType(dbType string) GormDBType {
 	switch dbType {
 	case "sqlite":
-		return GormDBTypeSQLite
+		return GormDBTypePostgres
 	default:
 		return GormDBTypeNotSupported
 	}
@@ -169,7 +169,7 @@ func getDBType(dbType string) GormDBType {
 
 func (gdb *gormDB) getDBConn(t GormDBType) (dbConn *gorm.DB, err error) {
 	switch t {
-	case GormDBTypeSQLite:
+	case GormDBTypePostgres:
 		return dialets.PostgresDB(gdb.dsn)
 	}
 	return nil, errors.New("invalid dsn")
