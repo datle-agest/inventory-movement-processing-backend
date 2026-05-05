@@ -170,7 +170,7 @@ func getDBType(dbType string) GormDBType {
 func (gdb *gormDB) getDBConn(t GormDBType) (dbConn *gorm.DB, err error) {
 	switch t {
 	case GormDBTypeSQLite:
-		return dialets.SQLiteDB(gdb.dsn)
+		return dialets.PostgresDB(gdb.dsn)
 	}
 	return nil, errors.New("invalid dsn")
 }
