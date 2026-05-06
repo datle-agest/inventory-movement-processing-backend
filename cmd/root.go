@@ -4,6 +4,7 @@ import (
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/pkg/components/configc"
 	"inventory-movement-processing/pkg/components/ginc"
+	"inventory-movement-processing/pkg/components/workerc"
 	sctx "inventory-movement-processing/pkg/service_context"
 	"log"
 	"net/http"
@@ -19,6 +20,7 @@ func newServiceContext() sctx.ServiceContext {
 		sctx.WithName("inventory-movement-processing"),
 		sctx.WithComponent(configc.NewConfigComponent(common.KeyComponentConfig)),
 		sctx.WithComponent(ginc.NewGin(common.KeyComponentGin)),
+		sctx.WithComponent(workerc.NewPool(common.KeyCompWorkerPool)),
 	)
 }
 
