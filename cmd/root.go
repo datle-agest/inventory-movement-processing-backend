@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"inventory-movement-processing/common"
+	"inventory-movement-processing/pkg/components/configc"
 	"inventory-movement-processing/pkg/components/ginc"
 	sctx "inventory-movement-processing/pkg/service_context"
 	"log"
@@ -16,6 +17,7 @@ import (
 func newServiceContext() sctx.ServiceContext {
 	return sctx.NewServiceContext(
 		sctx.WithName("inventory-movement-processing"),
+		sctx.WithComponent(configc.NewConfigComponent(common.KeyComponentConfig)),
 		sctx.WithComponent(ginc.NewGin(common.KeyComponentGin)),
 	)
 }
