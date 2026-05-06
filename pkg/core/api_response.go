@@ -1,4 +1,4 @@
-package common
+package core
 
 type SuccessResponse struct {
 	Data    interface{} `json:"data,omitempty"`

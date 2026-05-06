@@ -1,4 +1,4 @@
-package common
+package core
 
 type Pagination struct {
 	Page  int `json:"page"`
