@@ -1,6 +1,9 @@
 package domain
 
-import "inventory-movement-processing/pkg/core"
+import (
+	"inventory-movement-processing/pkg/core"
+	itemDomain "inventory-movement-processing/services/item/domain"
+)
 
 type MovementType string
 
@@ -12,10 +15,10 @@ const (
 
 type Movement struct {
 	core.SQLModel
-	Name     string       `json:"name"`
-	ItemID   int32        `json:"item_id"`
-	Type     MovementType `json:"movement_type"`
-	Quantity int32        `json:"quantity"`
+	ItemID   int32            `json:"item_id"`
+	Item     *itemDomain.Item `json:"item,omitempty"`
+	Type     MovementType     `json:"movement_type"`
+	Quantity int32            `json:"quantity"`
 }
 
 func (Movement) TableName() string {
