@@ -6,7 +6,7 @@ type repository struct {
 	db *gorm.DB
 }
 
-func NewPostgreSQLRepository(db *gorm.DB) *repository {
+func NewItemRepository(db *gorm.DB) *repository {
 	return &repository{
 		db: db,
 	}
