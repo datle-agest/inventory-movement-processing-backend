@@ -1,11 +1,11 @@
 package main
 
 import (
+	"flag"
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/composer"
 	"inventory-movement-processing/pkg/components/configc"
 	"inventory-movement-processing/pkg/components/ginc"
-	"inventory-movement-processing/pkg/components/ginc/middleware"
 	"inventory-movement-processing/pkg/components/workerc"
 	sctx "inventory-movement-processing/pkg/service_context"
 	"log"
@@ -42,7 +42,16 @@ func setupRoute(serviceCtx sctx.ServiceContext, route *gin.RouterGroup) {
 }
 
 func main() {
+	printEnv := flag.Bool("print-env", false, "print resolved environment variables")
+
+	flag.Parse()
+
 	serviceCtx := newServiceContext()
+
+	if *printEnv {
+		serviceCtx.OutEnv()
+		return
+	}
 
 	if err := serviceCtx.Load(); err != nil {
 		log.Fatalln(err)
@@ -52,10 +61,7 @@ func main() {
 	ginComp := serviceCtx.MustGet(common.KeyComponentGin).(common.HTTPServer)
 	router := ginComp.GetRouter()
 
-	router.Use(gin.Logger(), gin.Recovery(), middleware.Recovery(serviceCtx))
-
 	apiGroup := router.Group("/api")
-
 	setupRoute(serviceCtx, apiGroup)
 
 	ginComp.Run()
