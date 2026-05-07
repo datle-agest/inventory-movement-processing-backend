@@ -2,6 +2,7 @@ package main
 
 import (
 	"inventory-movement-processing/common"
+	"inventory-movement-processing/composer"
 	"inventory-movement-processing/pkg/components/configc"
 	"inventory-movement-processing/pkg/components/ginc"
 	"inventory-movement-processing/pkg/components/workerc"
@@ -24,13 +25,19 @@ func newServiceContext() sctx.ServiceContext {
 	)
 }
 
-func setupRoute(_ sctx.ServiceContext, route *gin.RouterGroup) {
+func setupRoute(serviceCtx sctx.ServiceContext, route *gin.RouterGroup) {
 	route.GET("/ping", func(c *gin.Context) {
 		// Return JSON response
 		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",
 		})
 	})
+
+	itemHTTPHandler := composer.ComposeItemService(serviceCtx)
+
+	v1 := route.Group("/v1")
+
+	v1.GET("/item", itemHTTPHandler.GetItem())
 }
 
 func main() {

@@ -7,3 +7,6 @@ type HTTPServer interface {
 	GetRouter() *gin.Engine
 	Run()
 }
+
+type Config interface {
+}
