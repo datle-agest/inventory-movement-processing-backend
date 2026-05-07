@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"inventory-movement-processing/common"
 	"log"
 	"os"
@@ -9,7 +10,17 @@ import (
 )
 
 func main() {
+	printEnv := flag.Bool("print-env", false, "print resolved environment variables")
+
+	flag.Parse()
+
 	serviceCtx := newServiceContext()
+
+	if *printEnv {
+		serviceCtx.OutEnv()
+		return
+	}
+
 	if err := serviceCtx.Load(); err != nil {
 		log.Fatalln(err)
 	}
