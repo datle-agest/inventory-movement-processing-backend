@@ -1,14 +1,8 @@
-package domain
+package entity
 
 import (
-	"errors"
+	itemEntity "inventory-movement-processing/internal/item/entity"
 	"inventory-movement-processing/pkg/core"
-)
-
-var (
-	ErrInvalidItemID   = errors.New("item_id must be greater than 0")
-	ErrInvalidQuantity = errors.New("quantity must be greater than 0")
-	ErrInvalidType     = errors.New("movement_type must be IN, OUT or ADJUST")
 )
 
 type MovementType string
@@ -21,10 +15,10 @@ const (
 
 type Movement struct {
 	core.SQLModel
-	ItemID   int32        `json:"item_id"`
-	Item     *Item        `json:"item,omitempty"`
-	Type     MovementType `json:"movement_type"`
-	Quantity int32        `json:"quantity"`
+	ItemID   int32            `json:"item_id"`
+	Item     *itemEntity.Item `json:"item,omitempty"`
+	Type     MovementType     `json:"movement_type"`
+	Quantity int32            `json:"quantity"`
 }
 
 func (Movement) TableName() string {

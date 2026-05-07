@@ -1,14 +1,8 @@
-package domain
+package entity
 
 import (
-	"errors"
 	"inventory-movement-processing/pkg/core"
 	"time"
-)
-
-var (
-	ErrReportDate        = errors.New("report date is required")
-	ErrNegativeReportVal = errors.New("report counts or quantities cannot be negative")
 )
 
 type Report struct {

@@ -1,18 +1,8 @@
-package domain
+package entity
 
 import (
-	"errors"
 	"inventory-movement-processing/pkg/core"
 	"strings"
-)
-
-var (
-	ErrItemNameEmpty     = errors.New("item name cannot be empty")
-	ErrItemSKUEmpty      = errors.New("item SKU cannot be empty")
-	ErrInvalidStock      = errors.New("current stock cannot be negative")
-	ErrInvalidThreshold  = errors.New("low stock threshold cannot be negative")
-	ErrInvalidCategoryID = errors.New("category_id must be greater than 0")
-	ErrCategoryNameEmpty = errors.New("category name cannot be empty")
 )
 
 type Item struct {
@@ -51,12 +41,12 @@ func (i *Item) Validate() error {
 	if i.CurrentStock < 0 {
 		return ErrInvalidStock
 	}
-	
+
 	if i.LowStockThreshold < 0 {
 		return ErrInvalidThreshold
 	}
 
-	if i.CategoryID <=0 {
+	if i.CategoryID <= 0 {
 		return ErrInvalidCategoryID
 	}
 	return nil
