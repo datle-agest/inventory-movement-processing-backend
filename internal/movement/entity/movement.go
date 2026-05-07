@@ -15,10 +15,11 @@ const (
 
 type Movement struct {
 	core.SQLModel
-	ItemID   int32            `json:"item_id"`
-	Item     *itemEntity.Item `json:"item,omitempty"`
-	Type     MovementType     `json:"movement_type"`
-	Quantity int32            `json:"quantity"`
+	ExternalID string           `json:"external_id"` // id này do scanner scan item mục đích là detect duplicate do chưa có DB đang inmemory
+	ItemID     int32            `json:"item_id"`
+	Item       *itemEntity.Item `json:"item,omitempty"`
+	Type       MovementType     `json:"movement_type"`
+	Quantity   int32            `json:"quantity"`
 }
 
 func (Movement) TableName() string {

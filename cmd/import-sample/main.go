@@ -1,45 +1,56 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	movementEntity "inventory-movement-processing/internal/movement/entity"
+	movementUsecase "inventory-movement-processing/internal/movement/usecase"
+	"log"
+	"os"
 	"sync"
 	"sync/atomic"
 )
 
 func main() {
-	movements := generateFakeData(100)
+	movements, err := readFromJSON("cmd/import-sample/testdata/movements.json")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	var (
-		accepted  int32
-		rejected  int32
-		duplicate int32
-		seen      = make(map[string]bool)
-		mu        sync.Mutex
-		wg        sync.WaitGroup
-		jobs      = make(chan mockMovement, len(movements))
-	)
+	uc := movementUsecase.NewMovementUsecase()
+	result := runWorkerPool(movements, uc, 5)
 
-	// 10 workers
-	for i := 0; i < 10; i++ {
+	out, _ := json.MarshalIndent(result, "", "  ")
+	fmt.Println(string(out))
+}
+
+type importResult struct {
+	AcceptedCount  int32 `json:"accepted_count"`
+	RejectedCount  int32 `json:"rejected_count"`
+	DuplicateCount int32 `json:"duplicate_count"`
+}
+
+func runWorkerPool(movements []movementEntity.Movement, uc movementUsecase.MovementUsecase, numWorkers int) importResult {
+	jobs := make(chan movementEntity.Movement, len(movements))
+
+	var accepted, rejected, duplicate atomic.Int32
+	var wg sync.WaitGroup
+
+	for range numWorkers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for m := range jobs {
-				mu.Lock()
-				if seen[m.ID] {
-					mu.Unlock()
-					atomic.AddInt32(&duplicate, 1)
-					continue
+				m := m
+				switch uc.ProcessOne(context.Background(), &m) {
+				case movementUsecase.StatusAccepted:
+					accepted.Add(1)
+				case movementUsecase.StatusRejected:
+					rejected.Add(1)
+				case movementUsecase.StatusDuplicate:
+					duplicate.Add(1)
 				}
-				seen[m.ID] = true
-				mu.Unlock()
-
-				if err := m.validate(); err != nil {
-					atomic.AddInt32(&rejected, 1)
-					continue
-				}
-				atomic.AddInt32(&accepted, 1)
 			}
 		}()
 	}
@@ -50,33 +61,23 @@ func main() {
 	close(jobs)
 	wg.Wait()
 
-	out, _ := json.Marshal(result{
-		AcceptedCount:  accepted,
-		RejectedCount:  rejected,
-		DuplicateCount: duplicate,
-	})
-	fmt.Println(string(out))
+	return importResult{
+		AcceptedCount:  accepted.Load(),
+		RejectedCount:  rejected.Load(),
+		DuplicateCount: duplicate.Load(),
+	}
 }
 
-func generateFakeData(n int) []mockMovement {
-	types := []movementType{movementTypeIn, movementTypeOut, movementTypeAdjust}
-	movements := make([]mockMovement, n)
-
-	for i := 0; i < n; i++ {
-		movements[i] = mockMovement{
-			ID:       fmt.Sprintf("MOV-%03d", i),
-			Name:     fmt.Sprintf("movement %d", i),
-			ItemID:   int32(i%10 + 1),
-			Type:     types[i%3],
-			Quantity: int32(i%50 + 1),
-		}
-
-		switch {
-		case i%15 == 0: // rejected
-			movements[i].Quantity = -1
-		case i%10 == 0: // duplicate
-			movements[i].ID = "MOV-000"
-		}
+func readFromJSON(path string) ([]movementEntity.Movement, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
 	}
-	return movements
+
+	var movements []movementEntity.Movement
+	if err := json.Unmarshal(data, &movements); err != nil {
+		return nil, err
+	}
+
+	return movements, nil
 }
