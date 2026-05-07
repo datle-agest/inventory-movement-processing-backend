@@ -5,7 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"inventory-movement-processing/pkg/components/loggerc"
+	"inventory-movement-processing/pkg/logger"
 	sctx "inventory-movement-processing/pkg/service_context"
 	"net/http"
 	"time"
@@ -26,7 +26,7 @@ type Config struct {
 type ginEngine struct {
 	*Config
 	id         string
-	logger     loggerc.Logger
+	logger     logger.Logger
 	router     *gin.Engine
 	httpServer *http.Server
 }

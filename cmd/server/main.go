@@ -5,6 +5,7 @@ import (
 	"inventory-movement-processing/composer"
 	"inventory-movement-processing/pkg/components/configc"
 	"inventory-movement-processing/pkg/components/ginc"
+	"inventory-movement-processing/pkg/components/ginc/middleware"
 	"inventory-movement-processing/pkg/components/workerc"
 	sctx "inventory-movement-processing/pkg/service_context"
 	"log"
@@ -50,6 +51,8 @@ func main() {
 
 	ginComp := serviceCtx.MustGet(common.KeyComponentGin).(common.HTTPServer)
 	router := ginComp.GetRouter()
+
+	router.Use(gin.Logger(), gin.Recovery(), middleware.Recovery(serviceCtx))
 
 	apiGroup := router.Group("/api")
 

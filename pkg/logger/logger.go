@@ -1,4 +1,4 @@
-package loggerc
+package logger
 
 type ServiceLogger interface {
 	InitFlags()

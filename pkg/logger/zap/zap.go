@@ -1,7 +1,7 @@
 package zaplogger
 
 import (
-	"inventory-movement-processing/pkg/components/loggerc"
+	"inventory-movement-processing/pkg/logger"
 
 	"go.uber.org/zap"
 )
@@ -36,13 +36,13 @@ func (l *zapLogger) Errorf(format string, args ...interface{}) {
 	l.sugar.Errorf(format, args...)
 }
 
-func (l *zapLogger) With(key string, value interface{}) loggerc.Logger {
+func (l *zapLogger) With(key string, value interface{}) logger.Logger {
 	return &zapLogger{
 		sugar: l.sugar.With(key, value),
 	}
 }
 
-func (l *zapLogger) WithFields(fields loggerc.Fields) loggerc.Logger {
+func (l *zapLogger) WithFields(fields logger.Fields) logger.Logger {
 	args := make([]interface{}, 0, len(fields)*2)
 	for k, v := range fields {
 		args = append(args, k, v)

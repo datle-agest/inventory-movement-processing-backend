@@ -1,7 +1,7 @@
 package workerc
 
 import (
-	"inventory-movement-processing/pkg/components/loggerc"
+	"inventory-movement-processing/pkg/logger"
 	sctx "inventory-movement-processing/pkg/service_context"
 	"sync"
 )
@@ -10,7 +10,7 @@ type Job func()
 
 type workerPool struct {
 	id         string
-	logger     loggerc.Logger
+	logger     logger.Logger
 	numWorkers int
 	queueSize  int
 	jobQueue   chan Job

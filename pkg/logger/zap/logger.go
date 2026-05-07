@@ -3,7 +3,7 @@ package zaplogger
 import (
 	"errors"
 	"flag"
-	"inventory-movement-processing/pkg/components/loggerc"
+	"inventory-movement-processing/pkg/logger"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -15,7 +15,7 @@ type appLogger struct {
 	logger      *zap.Logger
 }
 
-func NewZapLogger() loggerc.ServiceLogger {
+func NewZapLogger() logger.ServiceLogger {
 	zl, _ := zap.NewProduction()
 
 	return &appLogger{
@@ -67,7 +67,7 @@ func (a *appLogger) Activate() error {
 	return nil
 }
 
-func (a *appLogger) GetLogger(prefix string) loggerc.Logger {
+func (a *appLogger) GetLogger(prefix string) logger.Logger {
 	return &zapLogger{
 		sugar: a.logger.
 			With(zap.String("prefix", prefix)).

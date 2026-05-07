@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"inventory-movement-processing/pkg/components/gormc/dialets"
-	"inventory-movement-processing/pkg/components/loggerc"
+	"inventory-movement-processing/pkg/logger"
 	sctx "inventory-movement-processing/pkg/service_context"
 	"time"
 
@@ -31,7 +31,7 @@ type GormOpt struct {
 type gormDB struct {
 	id       string
 	prefix   string
-	logger   loggerc.Logger
+	logger   logger.Logger
 	logLevel string
 	db       *gorm.DB
 	*GormOpt

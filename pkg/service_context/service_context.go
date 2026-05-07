@@ -3,8 +3,8 @@ package sctx
 import (
 	"flag"
 	"fmt"
-	logger "inventory-movement-processing/pkg/components/loggerc"
-	zaplogger "inventory-movement-processing/pkg/components/loggerc/zap"
+	"inventory-movement-processing/pkg/logger"
+	zaplogger "inventory-movement-processing/pkg/logger/zap"
 	"log"
 	"os"
 	"strings"
