@@ -6,10 +6,12 @@ import (
 	"fmt"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
 	movementUsecase "inventory-movement-processing/internal/movement/usecase"
+	"inventory-movement-processing/pkg/components/workerc"
 	"log"
 	"os"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 func main() {
@@ -18,11 +20,34 @@ func main() {
 		log.Fatal(err)
 	}
 
-	uc := movementUsecase.NewMovementUsecase()
-	result := runWorkerPool(movements, uc, 5)
-
-	out, _ := json.MarshalIndent(result, "", "  ")
+	fmt.Println("========== SEQUENTIAL (no pool) ==========")
+	uc0 := movementUsecase.NewMovementUsecase()
+	start := time.Now()
+	var seq importResult
+	for _, m := range movements {
+		m := m
+		switch uc0.ProcessOne(context.Background(), &m) {
+		case movementUsecase.StatusAccepted:
+			seq.AcceptedCount++
+		case movementUsecase.StatusRejected:
+			seq.RejectedCount++
+		case movementUsecase.StatusDuplicate:
+			seq.DuplicateCount++
+		}
+	}
+	fmt.Printf("Took: %v\n", time.Since(start))
+	out, _ := json.MarshalIndent(seq, "", "  ")
 	fmt.Println(string(out))
+
+	fmt.Println("========== 5 WORKERS (pool) ==========")
+	uc5 := movementUsecase.NewMovementUsecase()
+	r5, _ := json.MarshalIndent(runWorkerPool(movements, uc5, 5), "", "  ")
+	fmt.Println(string(r5))
+
+	fmt.Println("========== 10 WORKERS (pool) ==========")
+	uc10 := movementUsecase.NewMovementUsecase()
+	r10, _ := json.MarshalIndent(runWorkerPool(movements, uc10, 10), "", "  ")
+	fmt.Println(string(r10))
 }
 
 type importResult struct {
@@ -32,34 +57,39 @@ type importResult struct {
 }
 
 func runWorkerPool(movements []movementEntity.Movement, uc movementUsecase.MovementUsecase, numWorkers int) importResult {
-	jobs := make(chan movementEntity.Movement, len(movements))
+	pool := workerc.NewPool("import-pool", numWorkers, len(movements))
+	pool.InitFlags()
+	pool.Activate(nil)
 
 	var accepted, rejected, duplicate atomic.Int32
-	var wg sync.WaitGroup
+	var batchWg sync.WaitGroup
 
-	for range numWorkers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for m := range jobs {
-				m := m
-				switch uc.ProcessOne(context.Background(), &m) {
-				case movementUsecase.StatusAccepted:
-					accepted.Add(1)
-				case movementUsecase.StatusRejected:
-					rejected.Add(1)
-				case movementUsecase.StatusDuplicate:
-					duplicate.Add(1)
-				}
+	workerJobCounts := make([]atomic.Int32, numWorkers)
+
+	start := time.Now()
+
+	for i, m := range movements {
+		batchWg.Add(1)
+		m := m
+		idx := i % numWorkers
+		pool.Submit(func() {
+			defer batchWg.Done()
+			workerJobCounts[idx].Add(1)
+			switch uc.ProcessOne(context.Background(), &m) {
+			case movementUsecase.StatusAccepted:
+				accepted.Add(1)
+			case movementUsecase.StatusRejected:
+				rejected.Add(1)
+			case movementUsecase.StatusDuplicate:
+				duplicate.Add(1)
 			}
-		}()
+		})
 	}
 
-	for _, m := range movements {
-		jobs <- m
-	}
-	close(jobs)
-	wg.Wait()
+	batchWg.Wait()
+	pool.Stop()
+
+	fmt.Printf("(%d workers, took %v)\n", numWorkers, time.Since(start))
 
 	return importResult{
 		AcceptedCount:  accepted.Load(),

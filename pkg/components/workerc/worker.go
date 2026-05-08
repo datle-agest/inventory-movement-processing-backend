@@ -18,9 +18,11 @@ type workerPool struct {
 	quit       chan struct{}
 }
 
-func NewPool(id string) *workerPool {
+func NewPool(id string, numWorkers int, queueSize int) *workerPool {
 	return &workerPool{
-		id: id,
+		id:         id,
+		numWorkers: numWorkers,
+		queueSize:  queueSize,
 	}
 }
 
@@ -28,8 +30,12 @@ func NewPool(id string) *workerPool {
 func (wp *workerPool) ID() string { return wp.id }
 
 func (wp *workerPool) InitFlags() {
-	wp.numWorkers = 10
-	wp.queueSize = 100
+	if wp.numWorkers == 0 {
+		wp.numWorkers = 10
+	}
+	if wp.queueSize == 0 {
+		wp.queueSize = 100
+	}
 }
 
 func (wp *workerPool) Activate(sc sctx.ServiceContext) error {

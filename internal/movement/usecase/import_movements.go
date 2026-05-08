@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"inventory-movement-processing/internal/movement/entity"
+	"time"
 )
 
 type ProcessStatus string
@@ -27,6 +28,8 @@ func (uc *usecase) ProcessOne(ctx context.Context, m *entity.Movement) ProcessSt
 	if err := m.Validate(); err != nil {
 		return StatusRejected
 	}
+
+	time.Sleep(5 * time.Millisecond) // giả lập tg tương tác DB
 
 	return StatusAccepted
 }
