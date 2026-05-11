@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	migration "inventory-movement-processing/cmd/migrations"
 	v1 "inventory-movement-processing/cmd/server/routes/v1"
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/pkg/components/configc"
@@ -17,7 +18,12 @@ import (
 	"syscall"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
+
+type DBProvider interface {
+	GetDB() *gorm.DB
+}
 
 func newServiceContext() sctx.ServiceContext {
 	return sctx.NewServiceContext(
@@ -44,6 +50,8 @@ func setupRouter(serviceCtx sctx.ServiceContext, router *gin.Engine) {
 func main() {
 	printEnv := flag.Bool("print-env", false, "print resolved environment variables")
 
+	runMigrate := flag.Bool("migrate", false, "run database migrations on startup")
+
 	flag.Parse()
 
 	serviceCtx := newServiceContext()
@@ -57,6 +65,16 @@ func main() {
 		log.Fatalln(err)
 	}
 	defer serviceCtx.Stop()
+
+
+	if *runMigrate {
+		gormComp := serviceCtx.MustGet("gorm").(DBProvider)
+		db := gormComp.GetDB()
+
+		if err := migration.RunMigration(db); err != nil {
+			log.Fatalf("AutoMigrate failed on startup: %v", err)
+		}
+	}
 
 	ginComp := serviceCtx.MustGet(common.KeyComponentGin).(common.HTTPServer)
 	setupRouter(serviceCtx, ginComp.GetRouter())
