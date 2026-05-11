@@ -47,27 +47,27 @@ services:
     depends_on:
       - postgres
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: backend
-    restart: always
-    depends_on:
-      - postgres
-      - redis
-      - keycloak
-    environment:
-      APP_ENV: dev
-      LOG_LEVEL: debug
+  # backend:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   container_name: backend
+  #   restart: always
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #     - keycloak
+  #   environment:
+  #     APP_ENV: dev
+  #     LOG_LEVEL: debug
 
-      DB_DRIVER: postgres
-      DB_DSN: "host=postgres user=postgres password=123456 dbname=imp_db port=5432 sslmode=disable"
+  #     DB_DRIVER: postgres
+  #     DB_DSN: "host=postgres user=postgres password=123456 dbname=imp_db port=5432 sslmode=disable"
 
-      GIN_PORT: 3000
+  #     GIN_PORT: 3000
 
-    ports:
-      - "3000:3000"
+  #   ports:
+  #     - "3000:3000"
 
 volumes:
   postgres_data:
