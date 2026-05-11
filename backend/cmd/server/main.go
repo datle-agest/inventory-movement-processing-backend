@@ -9,6 +9,7 @@ import (
 	"inventory-movement-processing/pkg/components/ginc"
 	"inventory-movement-processing/pkg/components/ginc/middleware"
 	"inventory-movement-processing/pkg/components/gormc"
+	"inventory-movement-processing/pkg/components/redisc"
 	"inventory-movement-processing/pkg/components/workerc"
 	sctx "inventory-movement-processing/pkg/service_context"
 	"log"
@@ -32,6 +33,7 @@ func newServiceContext() sctx.ServiceContext {
 		sctx.WithComponent(ginc.NewGin(common.KeyComponentGin)),
 		sctx.WithComponent(workerc.NewPool(common.KeyCompWorkerPool, 1, 1)),
 		sctx.WithComponent(gormc.NewGormDB(common.KeyComponentPostgres, "")),
+		sctx.WithComponent(redisc.NewRedis(common.KeyComponentRedis)),
 	)
 }
 
