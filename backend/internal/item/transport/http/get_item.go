@@ -12,9 +12,10 @@ func (hdl handler) GetItem() gin.HandlerFunc {
 		data, err := hdl.service.GetItem(c.Request.Context(), 1)
 
 		if err != nil {
-			c.JSON(http.StatusBadRequest, core.NewError(http.StatusBadRequest, err))
+			core.WriteError(c, err)
+			return
 		}
 
-		c.JSON(http.StatusOK, core.NewSuccess(data))
+		c.JSON(http.StatusOK, core.Success(data))
 	}
 }
