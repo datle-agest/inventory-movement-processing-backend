@@ -50,6 +50,8 @@ func setupRouter(serviceCtx sctx.ServiceContext, router *gin.Engine) {
 func main() {
 	printEnv := flag.Bool("print-env", false, "print resolved environment variables")
 
+	runMigrate := flag.Bool("migrate", false, "run database migrations on startup")
+
 	flag.Parse()
 
 	serviceCtx := newServiceContext()
@@ -64,11 +66,14 @@ func main() {
 	}
 	defer serviceCtx.Stop()
 
-	gormComp := serviceCtx.MustGet("gorm").(DBProvider)
-	db := gormComp.GetDB()
 
-	if err := migration.RunMigration(db); err != nil {
-		log.Fatalf("AutoMigrate failed on startup: %v", err)
+	if *runMigrate {
+		gormComp := serviceCtx.MustGet("gorm").(DBProvider)
+		db := gormComp.GetDB()
+
+		if err := migration.RunMigration(db); err != nil {
+			log.Fatalf("AutoMigrate failed on startup: %v", err)
+		}
 	}
 
 	ginComp := serviceCtx.MustGet(common.KeyComponentGin).(common.HTTPServer)
