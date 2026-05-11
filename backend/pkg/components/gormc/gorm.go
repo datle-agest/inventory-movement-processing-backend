@@ -17,6 +17,7 @@ type GormDBType int
 
 const (
 	GormDBTypePostgres GormDBType = iota + 1
+	GormDBTypeSqlite
 	GormDBTypeNotSupported
 )
 
@@ -160,8 +161,10 @@ func (gdb *gormDB) GetDB() *gorm.DB {
 
 func getDBType(dbType string) GormDBType {
 	switch dbType {
-	case "sqlite":
+	case "postgres":
 		return GormDBTypePostgres
+	case "sqlite":
+		return GormDBTypeSqlite
 	default:
 		return GormDBTypeNotSupported
 	}
