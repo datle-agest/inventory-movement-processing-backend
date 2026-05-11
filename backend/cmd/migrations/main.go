@@ -1,14 +1,12 @@
-package main // Bắt buộc phải là main để chạy được
+package main
 
 import (
 	"log"
 
-	// Import các entity của bạn để chạy AutoMigrate
 	itemEntity "inventory-movement-processing/internal/item/entity"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
 	reportEntity "inventory-movement-processing/internal/report/entity"
 
-	// Import component từ pkg
 	"inventory-movement-processing/pkg/components/gormc"
 	sctx "inventory-movement-processing/pkg/service_context"
 
@@ -19,7 +17,6 @@ type DBProvider interface {
 	GetDB() *gorm.DB
 }
 
-// Gộp luôn hàm RunMigration vào file này
 func RunMigration(db *gorm.DB) error {
 	log.Println("Đang tiến hành kiểm tra và chạy Migration...")
 
