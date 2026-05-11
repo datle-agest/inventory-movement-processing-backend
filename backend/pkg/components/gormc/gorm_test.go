@@ -9,8 +9,8 @@ import (
 var testServiceCtx sctx.ServiceContext
 
 func TestMain(m *testing.M) {
-	_ = os.Setenv("DB_DRIVER", "sqlite")
-	_ = os.Setenv("DB_DSN", ":memory:")
+	_ = os.Setenv("DB_DRIVER", "postgres")
+    _ = os.Setenv("DB_DSN", "host=localhost user=postgres password=123456 dbname=my_db port=5432 sslmode=disable TimeZone=Asia/Ho_Chi_Minh")
 
 	testServiceCtx = sctx.NewServiceContext(
 		sctx.WithName("test"),

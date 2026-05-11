@@ -66,7 +66,7 @@ func (gdb *gormDB) InitFlags() {
 	flag.StringVar(
 		&gdb.dbType,
 		fmt.Sprintf("%sdb-driver", prefix),
-		"mysql",
+		"postgres",
 		"Database driver (mysql, postgres) - Default mysql",
 	)
 
@@ -160,7 +160,7 @@ func (gdb *gormDB) GetDB() *gorm.DB {
 
 func getDBType(dbType string) GormDBType {
 	switch dbType {
-	case "sqlite":
+	case "postgres":
 		return GormDBTypePostgres
 	default:
 		return GormDBTypeNotSupported
