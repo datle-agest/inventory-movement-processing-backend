@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	migration "inventory-movement-processing/cmd/migrations"
+	"inventory-movement-processing/pkg/migrations"
 	v1 "inventory-movement-processing/cmd/server/routes/v1"
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/pkg/components/configc"
@@ -66,12 +66,11 @@ func main() {
 	}
 	defer serviceCtx.Stop()
 
-
 	if *runMigrate {
-		gormComp := serviceCtx.MustGet("gorm").(DBProvider)
+		gormComp := serviceCtx.MustGet(common.KeyComponentPostgres).(DBProvider)
 		db := gormComp.GetDB()
 
-		if err := migration.RunMigration(db); err != nil {
+		if err := migrations.RunMigration(db); err != nil {
 			log.Fatalf("AutoMigrate failed on startup: %v", err)
 		}
 	}
