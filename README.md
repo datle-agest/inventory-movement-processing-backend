@@ -7,5 +7,5 @@
 docker compose up -d
 
 # Run migration
-docker compose exec backend /migration
+docker compose exec backend /migrations
 ```
