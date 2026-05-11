@@ -1,7 +1,7 @@
 package composer
 
 import (
-	itemUsecase "inventory-movement-processing/internal/item/service"
+	itemService "inventory-movement-processing/internal/item/service"
 	itemHttp "inventory-movement-processing/internal/item/transport/http"
 	sctx "inventory-movement-processing/pkg/service_context"
 
@@ -15,7 +15,7 @@ type itemHandler interface {
 func ComposeItemService(serviceCtx sctx.ServiceContext) itemHandler {
 	// configComp := serviceCtx.MustGet(common.KeyComponentConfig).(common.Config)
 
-	itemUc := itemUsecase.NewItemService()
+	itemUc := itemService.NewItemService()
 
 	itemHdl := itemHttp.NewItemHandler(itemUc)
 

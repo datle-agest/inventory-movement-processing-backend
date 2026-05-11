@@ -9,7 +9,7 @@ import (
 
 func (hdl handler) GetItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		data, err := hdl.usecase.GetItem(c.Request.Context(), 1)
+		data, err := hdl.service.GetItem(c.Request.Context(), 1)
 
 		if err != nil {
 			c.JSON(http.StatusBadRequest, core.NewError(http.StatusBadRequest, err))

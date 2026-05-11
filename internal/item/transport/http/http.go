@@ -5,16 +5,16 @@ import (
 	"inventory-movement-processing/internal/item/entity"
 )
 
-type usecase interface {
+type service interface {
 	GetItem(ctx context.Context, id int) (*entity.Item, error)
 }
 
 type handler struct {
-	usecase usecase
+	service service
 }
 
-func NewItemHandler(usecase usecase) handler {
+func NewItemHandler(sv service) handler {
 	return handler{
-		usecase: usecase,
+		service: sv,
 	}
 }

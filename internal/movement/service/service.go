@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-type MovementUsecase interface {
+type MovementService interface {
 	ProcessOne(ctx context.Context, m *entity.Movement) ProcessStatus
 }
 
@@ -15,7 +15,7 @@ type service struct {
 	seen map[string]bool // sau thay bằng repo
 }
 
-func NewMovementUsecase() MovementUsecase {
+func NewMovementService() MovementService {
 	return &service{
 		seen: make(map[string]bool),
 	}
