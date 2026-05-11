@@ -2,12 +2,14 @@ package main
 
 import (
 	"flag"
-	migration "inventory-movement-processing/cmd/migrations"
+	"inventory-movement-processing/pkg/migrations"
 	v1 "inventory-movement-processing/cmd/server/routes/v1"
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/pkg/components/configc"
 	"inventory-movement-processing/pkg/components/ginc"
 	"inventory-movement-processing/pkg/components/ginc/middleware"
+	"inventory-movement-processing/pkg/components/gormc"
+	"inventory-movement-processing/pkg/components/redisc"
 	"inventory-movement-processing/pkg/components/workerc"
 	sctx "inventory-movement-processing/pkg/service_context"
 	"log"
@@ -30,7 +32,8 @@ func newServiceContext() sctx.ServiceContext {
 		sctx.WithComponent(configc.NewConfigComponent(common.KeyComponentConfig)),
 		sctx.WithComponent(ginc.NewGin(common.KeyComponentGin)),
 		sctx.WithComponent(workerc.NewPool(common.KeyCompWorkerPool, 1, 1)),
-		//sctx.WithComponent(gormc.NewGormDB(common.KeyComponentPostgres, "")),
+		sctx.WithComponent(gormc.NewGormDB(common.KeyComponentPostgres, "")),
+		sctx.WithComponent(redisc.NewRedis(common.KeyComponentRedis)),
 	)
 }
 
@@ -66,10 +69,10 @@ func main() {
 	defer serviceCtx.Stop()
 
 	if *runMigrate {
-		gormComp := serviceCtx.MustGet("gorm").(DBProvider)
+		gormComp := serviceCtx.MustGet(common.KeyComponentPostgres).(DBProvider)
 		db := gormComp.GetDB()
 
-		if err := migration.RunMigration(db); err != nil {
+		if err := migrations.RunMigration(db); err != nil {
 			log.Fatalf("AutoMigrate failed on startup: %v", err)
 		}
 	}
