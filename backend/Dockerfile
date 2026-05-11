@@ -23,15 +23,10 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -o /bin/migrations ./cmd/migrations
 
 # Step 3: final
-FROM alpine:3.23
+FROM scratch
 
-RUN apk add --no-cache ca-certificates tzdata
+COPY --from=builder /bin/server /server
+COPY --from=builder /bin/migrations /migrations
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-WORKDIR /app
-
-COPY --from=builder /bin/server /app/server
-COPY --from=builder /bin/migrations /app/migrations
-
-RUN chmod +x /app/server /app/migrations
-
-CMD ["/app/server"]
+CMD ["/server"]
