@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
-	movementUsecase "inventory-movement-processing/internal/movement/usecase"
+	movementService "inventory-movement-processing/internal/movement/service"
 	"inventory-movement-processing/pkg/components/workerc"
 	"log"
 	"os"
@@ -21,17 +21,17 @@ func main() {
 	}
 
 	fmt.Println("========== SEQUENTIAL (no pool) ==========")
-	uc0 := movementUsecase.NewMovementUsecase()
+	uc0 := movementService.NewMovementService()
 	start := time.Now()
 	var seq importResult
 	for _, m := range movements {
 		m := m
 		switch uc0.ProcessOne(context.Background(), &m) {
-		case movementUsecase.StatusAccepted:
+		case movementService.StatusAccepted:
 			seq.AcceptedCount++
-		case movementUsecase.StatusRejected:
+		case movementService.StatusRejected:
 			seq.RejectedCount++
-		case movementUsecase.StatusDuplicate:
+		case movementService.StatusDuplicate:
 			seq.DuplicateCount++
 		}
 	}
@@ -40,12 +40,12 @@ func main() {
 	fmt.Println(string(out))
 
 	fmt.Println("========== 5 WORKERS (pool) ==========")
-	uc5 := movementUsecase.NewMovementUsecase()
+	uc5 := movementService.NewMovementService()
 	r5, _ := json.MarshalIndent(runWorkerPool(movements, uc5, 5), "", "  ")
 	fmt.Println(string(r5))
 
 	fmt.Println("========== 10 WORKERS (pool) ==========")
-	uc10 := movementUsecase.NewMovementUsecase()
+	uc10 := movementService.NewMovementService()
 	r10, _ := json.MarshalIndent(runWorkerPool(movements, uc10, 10), "", "  ")
 	fmt.Println(string(r10))
 }
@@ -56,7 +56,7 @@ type importResult struct {
 	DuplicateCount int32 `json:"duplicate_count"`
 }
 
-func runWorkerPool(movements []movementEntity.Movement, uc movementUsecase.MovementUsecase, numWorkers int) importResult {
+func runWorkerPool(movements []movementEntity.Movement, uc movementService.MovementService, numWorkers int) importResult {
 	pool := workerc.NewPool("import-pool", numWorkers, len(movements))
 	pool.InitFlags()
 	pool.Activate(nil)
@@ -76,11 +76,11 @@ func runWorkerPool(movements []movementEntity.Movement, uc movementUsecase.Movem
 			defer batchWg.Done()
 			workerJobCounts[idx].Add(1)
 			switch uc.ProcessOne(context.Background(), &m) {
-			case movementUsecase.StatusAccepted:
+			case movementService.StatusAccepted:
 				accepted.Add(1)
-			case movementUsecase.StatusRejected:
+			case movementService.StatusRejected:
 				rejected.Add(1)
-			case movementUsecase.StatusDuplicate:
+			case movementService.StatusDuplicate:
 				duplicate.Add(1)
 			}
 		})

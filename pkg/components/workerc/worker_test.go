@@ -7,7 +7,7 @@ import (
 )
 
 func TestWorkerPool_Submit(t *testing.T) {
-	pool := NewPool("test-worker-pool")
+	pool := NewPool("test-worker-pool", 1, 1)
 	pool.InitFlags()
 
 	pool.Activate(nil)
@@ -29,7 +29,7 @@ func TestWorkerPool_Submit(t *testing.T) {
 }
 
 func TestWorkerPool_Stop(t *testing.T) {
-	pool := NewPool("test-pool")
+	pool := NewPool("test-pool", 1, 1)
 	pool.InitFlags()
 	pool.Activate(nil)
 

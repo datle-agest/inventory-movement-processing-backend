@@ -23,7 +23,7 @@ func newServiceContext() sctx.ServiceContext {
 		sctx.WithName("inventory-movement-processing"),
 		sctx.WithComponent(configc.NewConfigComponent(common.KeyComponentConfig)),
 		sctx.WithComponent(ginc.NewGin(common.KeyComponentGin)),
-		sctx.WithComponent(workerc.NewPool(common.KeyCompWorkerPool)),
+		sctx.WithComponent(workerc.NewPool(common.KeyCompWorkerPool, 1, 1)),
 	)
 }
 

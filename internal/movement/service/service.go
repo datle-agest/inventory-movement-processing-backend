@@ -1,4 +1,4 @@
-package usecase
+package service
 
 import (
 	"context"
@@ -6,17 +6,17 @@ import (
 	"sync"
 )
 
-type MovementUsecase interface {
+type MovementService interface {
 	ProcessOne(ctx context.Context, m *entity.Movement) ProcessStatus
 }
 
-type usecase struct {
+type service struct {
 	mu   sync.Mutex
 	seen map[string]bool // sau thay bằng repo
 }
 
-func NewMovementUsecase() MovementUsecase {
-	return &usecase{
+func NewMovementService() MovementService {
+	return &service{
 		seen: make(map[string]bool),
 	}
 }
