@@ -67,7 +67,7 @@ func (gdb *gormDB) InitFlags() {
 	flag.StringVar(
 		&gdb.dbType,
 		fmt.Sprintf("%sdb-driver", prefix),
-		"mysql",
+		"postgres",
 		"Database driver (mysql, postgres) - Default mysql",
 	)
 
