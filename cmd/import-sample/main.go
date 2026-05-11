@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
-	movementUsecase "inventory-movement-processing/internal/movement/usecase"
+	movementService "inventory-movement-processing/internal/movement/service"
 	"log"
 	"os"
 	"sync"
@@ -18,7 +18,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	uc := movementUsecase.NewMovementUsecase()
+	uc := movementService.NewMovementUsecase()
 	result := runWorkerPool(movements, uc, 5)
 
 	out, _ := json.MarshalIndent(result, "", "  ")
@@ -31,7 +31,7 @@ type importResult struct {
 	DuplicateCount int32 `json:"duplicate_count"`
 }
 
-func runWorkerPool(movements []movementEntity.Movement, uc movementUsecase.MovementUsecase, numWorkers int) importResult {
+func runWorkerPool(movements []movementEntity.Movement, uc movementService.MovementUsecase, numWorkers int) importResult {
 	jobs := make(chan movementEntity.Movement, len(movements))
 
 	var accepted, rejected, duplicate atomic.Int32
@@ -44,11 +44,11 @@ func runWorkerPool(movements []movementEntity.Movement, uc movementUsecase.Movem
 			for m := range jobs {
 				m := m
 				switch uc.ProcessOne(context.Background(), &m) {
-				case movementUsecase.StatusAccepted:
+				case movementService.StatusAccepted:
 					accepted.Add(1)
-				case movementUsecase.StatusRejected:
+				case movementService.StatusRejected:
 					rejected.Add(1)
-				case movementUsecase.StatusDuplicate:
+				case movementService.StatusDuplicate:
 					duplicate.Add(1)
 				}
 			}

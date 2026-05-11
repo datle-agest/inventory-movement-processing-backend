@@ -1,4 +1,4 @@
-package usecase
+package service
 
 import (
 	"context"
@@ -9,14 +9,14 @@ type itemRepository interface {
 	GetItem(ctx context.Context, id int) (*entity.Item, error)
 }
 
-type usecase struct {
+type service struct {
 	// itemRepository itemRepository
 }
 
-func NewItemUsecase(
+func NewItemService(
 // itemRepository itemRepository,
-) *usecase {
-	return &usecase{}
+) *service {
+	return &service{}
 	// return &usecase{
 	// 	itemRepository: itemRepository,
 	// }

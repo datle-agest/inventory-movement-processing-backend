@@ -1,4 +1,4 @@
-package usecase
+package service
 
 import (
 	"context"
@@ -13,7 +13,7 @@ const (
 	StatusDuplicate ProcessStatus = "duplicate"
 )
 
-func (uc *usecase) ProcessOne(ctx context.Context, m *entity.Movement) ProcessStatus {
+func (uc *service) ProcessOne(ctx context.Context, m *entity.Movement) ProcessStatus {
 
 	uc.mu.Lock()
 	if uc.seen[m.ExternalID] {
