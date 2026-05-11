@@ -1,4 +1,4 @@
-package main
+package migrations
 
 import (
 	"log"
@@ -36,7 +36,7 @@ func RunMigration(db *gorm.DB) error {
 	return nil
 }
 
-func main() {
+func Run() {
 	ctx := sctx.NewServiceContext(
 		sctx.WithName("migration-tool"),
 		sctx.WithComponent(gormc.NewGormDB("gorm", "")),
