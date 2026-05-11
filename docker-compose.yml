@@ -8,9 +8,10 @@ services:
       POSTGRES_PASSWORD: 123456
       POSTGRES_DB: imp_db
     ports:
-      - "5432:54325"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d
 
   adminer:
     image: adminer
@@ -20,6 +21,53 @@ services:
       - "8080:8080"
     depends_on:
       - postgres
+
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: keycloak
+    restart: always
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: 123456
+
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+      - keycloak
+    environment:
+      APP_ENV: dev
+      LOG_LEVEL: debug
+
+      DB_DRIVER: postgres
+      DB_DSN: "host=postgres user=postgres password=123456 dbname=imp_db port=5432 sslmode=disable"
+
+      GIN_PORT: 3000
+
+    ports:
+      - "3000:3000"
 
 volumes:
   postgres_data:
