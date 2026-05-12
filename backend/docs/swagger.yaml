@@ -179,6 +179,67 @@ paths:
       summary: Get item by ID
       tags:
       - Items
+  /v1/reports:
+    get:
+      consumes:
+      - application/json
+      description: Get inventory report by date
+      parameters:
+      - description: Report date (YYYY-MM-DD)
+        in: query
+        name: date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Report retrieved successfully
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "400":
+          description: Invalid date format
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "404":
+          description: Report not found
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+      summary: Get inventory report
+      tags:
+      - Reports
+    post:
+      consumes:
+      - application/json
+      description: Create inventory report by date. If date is empty, current date
+        will be used.
+      parameters:
+      - description: Report date (YYYY-MM-DD)
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Report created successfully
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "400":
+          description: Invalid date format
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+      summary: Create daily inventory report
+      tags:
+      - Reports
 schemes:
 - http
 - https
