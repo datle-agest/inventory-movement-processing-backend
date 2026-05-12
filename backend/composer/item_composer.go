@@ -1,23 +1,29 @@
 package composer
 
 import (
+	"inventory-movement-processing/common"
+	"inventory-movement-processing/internal/item/repository/postgres"
 	itemService "inventory-movement-processing/internal/item/service"
-	itemHttp "inventory-movement-processing/internal/item/transport/http"
 	sctx "inventory-movement-processing/pkg/service_context"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
+type DBProvider interface {
+	GetDB() *gorm.DB
+}
 type itemHandler interface {
 	GetItem() gin.HandlerFunc
 }
 
 func ComposeItemService(serviceCtx sctx.ServiceContext) itemHandler {
-	// configComp := serviceCtx.MustGet(common.KeyComponentConfig).(common.Config)
+	db := serviceCtx.MustGet(common.KeyComponentPostgres).(DBProvider).GetDB()
+	repo := postgres.NewItemRepository(db)
 
-	itemUc := itemService.NewItemService()
+	service := itemService.NewItemService(repo)
 
-	itemHdl := itemHttp.NewItemHandler(itemUc)
+	handler := itemHttp.NewHandler(service)
 
-	return itemHdl
+	return handler
 }
