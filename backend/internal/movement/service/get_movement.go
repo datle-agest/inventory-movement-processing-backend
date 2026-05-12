@@ -3,18 +3,19 @@ package service
 import (
 	"context"
 	"errors"
-	"inventory-movement-processing/common"
 	"inventory-movement-processing/internal/movement/entity"
-	"inventory-movement-processing/internal/movement/repository/postgres"
 )
 
-func (uc *service) GetMovementById(ctx context.Context, id int) (*entity.Movement, error) {
-	movement, err := uc.movementRepo.GetMovementById(ctx, id)
-	if errors.Is(err, postgres.ErrRecordNotFound) {
-		return nil, common.ErrNotFound("movement not found")
+func (s *movementService) GetMovement(ctx context.Context, itemId int) ([]entity.Movement, error) {
+	if itemId <= 0 {
+		return nil, errors.New("invalid item id for history lookup")
 	}
+
+	movements, err := s.repo.GetMovementsByItemID(ctx, itemId)
 	if err != nil {
-		return nil, common.ErrInternal("failed to get movement")
+		return nil, err
 	}
-	return movement, nil
+
+	return movements, nil
+
 }
