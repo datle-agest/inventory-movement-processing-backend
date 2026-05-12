@@ -10,6 +10,6 @@ func Register(serviceCtx sctx.ServiceContext, api *gin.RouterGroup) {
 	v1 := api.Group("/v1")
 
 	RegisterItemRoutes(serviceCtx, v1)
-	// RegisterMovementRoutes(serviceCtx, v1)
+	RegisterMovementRoutes(serviceCtx, v1)
 	// RegisterReportRoutes(serviceCtx, v1)
 }
