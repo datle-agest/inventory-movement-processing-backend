@@ -21,7 +21,7 @@ func main() {
 	}
 
 	fmt.Println("========== SEQUENTIAL (no pool) ==========")
-	uc0 := movementService.NewMovementService()
+	uc0 := movementService.NewMovementService(nil)
 	start := time.Now()
 	var seq importResult
 	for _, m := range movements {
@@ -40,12 +40,12 @@ func main() {
 	fmt.Println(string(out))
 
 	fmt.Println("========== 5 WORKERS (pool) ==========")
-	uc5 := movementService.NewMovementService()
+	uc5 := movementService.NewMovementService(nil)
 	r5, _ := json.MarshalIndent(runWorkerPool(movements, uc5, 5), "", "  ")
 	fmt.Println(string(r5))
 
 	fmt.Println("========== 10 WORKERS (pool) ==========")
-	uc10 := movementService.NewMovementService()
+	uc10 := movementService.NewMovementService(nil)
 	r10, _ := json.MarshalIndent(runWorkerPool(movements, uc10, 10), "", "  ")
 	fmt.Println(string(r10))
 }
