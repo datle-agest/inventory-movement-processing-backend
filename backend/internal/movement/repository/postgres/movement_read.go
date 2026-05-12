@@ -11,7 +11,7 @@ import (
 // Service dùng errors.Is() để check, không compare string
 var ErrRecordNotFound = errors.New("record not found")
 
-func (repo *repository) GetMovementById(ctx context.Context, id int) (*entity.Movement, error) {
+func (repo *movementRepository) GetMovementById(ctx context.Context, id int) (*entity.Movement, error) {
 	// TODO: thay bằng repo.db.WithContext(ctx).First(&m, id).Error khi có gorm
 
 	// giả lập not found và lỗi knoi DB — DB thật sẽ trả ra lỗi tương tự, repo chỉ forward lên

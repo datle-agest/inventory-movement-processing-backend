@@ -1,12 +1,13 @@
 package postgres
 
-type repository struct {
-	//db *gorm.DB
-	db *string // để đỡ để có mock data test mấy cái res
+import "gorm.io/gorm"
+
+type movementRepository struct {
+	db *gorm.DB
 }
 
-func NewMovementRepository(db *string) *repository {
-	return &repository{
+func NewMovementRepository(db *gorm.DB) *movementRepository {
+	return &movementRepository{
 		db: db,
 	}
 }
