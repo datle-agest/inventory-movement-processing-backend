@@ -1,6 +1,7 @@
 package http
 
 import (
+	"inventory-movement-processing/common"
 	"inventory-movement-processing/pkg/core"
 	"net/http"
 	"time"
@@ -24,14 +25,12 @@ func (h *reportHandler) GetReport() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dateStr := c.Query("date")
 		if dateStr == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "query param 'date' is required (YYYY-MM-DD)"})
-			return
+			core.WriteError(c, common.ErrBadRequest("query param 'date' is required (YYYY-MM-DD)"))
 		}
 
 		date, err := time.Parse(time.DateOnly, dateStr) // "2006-01-02"
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date format, expected YYYY-MM-DD"})
-			return
+			core.WriteError(c, common.ErrBadRequest("invalid date format, expected YYYY-MM-DD"))
 		}
 
 		report, err := h.reportService.GetReport(c.Request.Context(), date)

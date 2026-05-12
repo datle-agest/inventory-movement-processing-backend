@@ -1,6 +1,7 @@
 package http
 
 import (
+	"inventory-movement-processing/common"
 	"inventory-movement-processing/pkg/core"
 	"net/http"
 	"time"
@@ -30,8 +31,7 @@ func (h *reportHandler) CreateReport() gin.HandlerFunc {
 		} else {
 			parsed, err := time.Parse(time.DateOnly, dateStr)
 			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid date format, expected YYYY-MM-DD"})
-				return
+				core.WriteError(c, common.ErrBadRequest("invalid date format, expected YYYY-MM-DD"))
 			}
 			date = parsed
 		}
