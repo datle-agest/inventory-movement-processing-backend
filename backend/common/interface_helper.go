@@ -1,6 +1,9 @@
 package common
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
 
 type HTTPServer interface {
 	GetPort() int
@@ -9,4 +12,8 @@ type HTTPServer interface {
 }
 
 type Config interface {
+}
+
+type DBProvider interface {
+	GetDB() *gorm.DB
 }

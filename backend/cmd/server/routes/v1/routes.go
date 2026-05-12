@@ -11,5 +11,5 @@ func Register(serviceCtx sctx.ServiceContext, api *gin.RouterGroup) {
 
 	RegisterItemRoutes(serviceCtx, v1)
 	RegisterMovementRoutes(serviceCtx, v1)
-	// RegisterReportRoutes(serviceCtx, v1)
+	RegisterReportRoutes(serviceCtx, v1)
 }

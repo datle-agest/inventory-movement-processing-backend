@@ -1,6 +1,7 @@
 package composer
 
 import (
+	"inventory-movement-processing/common"
 	"inventory-movement-processing/internal/movement/repository/postgres"
 	movementService "inventory-movement-processing/internal/movement/service"
 	movementHttp "inventory-movement-processing/internal/movement/transport/http"
@@ -14,10 +15,9 @@ type movementHandler interface {
 }
 
 func ComposeMovementService(serviceCtx sctx.ServiceContext) movementHandler {
+	db := serviceCtx.MustGet(common.KeyComponentPostgres).(common.DBProvider).GetDB()
 
-	// db := serviceCtx.MustGet(common.KeyComponentPostgres).(*gormc.GormDB).GetDB()
-
-	repo := postgres.NewMovementRepository(new(string))
+	repo := postgres.NewMovementRepository(db)
 	uc := movementService.NewMovementService(repo)
 	handler := movementHttp.NewHandler(uc)
 

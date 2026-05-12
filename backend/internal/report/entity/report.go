@@ -5,16 +5,24 @@ import (
 	"time"
 )
 
+type ReportItem struct {
+	ItemID   int32  `json:"item_id"`
+	Name     string `json:"name,omitempty"`
+	Quantity int32  `json:"quantity,omitempty"`
+}
+
 type Report struct {
 	core.SQLModel
+
 	ReportDate            time.Time `json:"report_date"`
-	TotalInCount          int       `json:"total_in_count"`
-	TotalOutCount         int       `json:"total_out_count"`
-	TotalAdjustCount      int       `json:"total_adjust_count"`
-	TotalQuantityReceived int       `json:"total_qty_received"`
-	TotalQuantityIssued   int       `json:"total_qty_issued"`
-	Top5ActiveItem        string    `json:"top5_active_items"`
-	LowStockItem          string    `json:"low_stock_items"`
+	TotalInCount          int32     `json:"total_in_count"`
+	TotalOutCount         int32     `json:"total_out_count"`
+	TotalAdjustCount      int32     `json:"total_adjust_count"`
+	TotalQuantityReceived int32     `json:"total_qty_received"`
+	TotalQuantityIssued   int32     `json:"total_qty_issued"`
+
+	Top5ActiveItem []ReportItem `gorm:"type:jsonb" json:"top5_active_items"`
+	LowStockItem   []ReportItem `gorm:"type:jsonb" json:"low_stock_items"`
 }
 
 func (Report) TableName() string {
