@@ -8,6 +8,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetReport godoc
+// @Summary Get inventory report
+// @Description Get inventory report by date
+// @Tags Reports
+// @Accept json
+// @Produce json
+// @Param date query string true "Report date (YYYY-MM-DD)"
+// @Success 200 {object} core.APIResponse "Report retrieved successfully"
+// @Failure 400 {object} core.APIResponse "Invalid date format"
+// @Failure 404 {object} core.APIResponse "Report not found"
+// @Failure 500 {object} core.APIResponse "Internal server error"
+// @Router /v1/reports [get]
 func (h *reportHandler) GetReport() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dateStr := c.Query("date")
@@ -28,7 +40,10 @@ func (h *reportHandler) GetReport() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"data": report})
+		c.JSON(
+			http.StatusOK,
+			core.Success(report),
+		)
 	}
 
 }
