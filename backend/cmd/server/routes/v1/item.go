@@ -11,5 +11,11 @@ func RegisterItemRoutes(serviceCtx sctx.ServiceContext, r *gin.RouterGroup) {
 	h := composer.ComposeItemService(serviceCtx)
 
 	items := r.Group("/items")
+
+	items.GET("", h.ListItem())
 	items.GET("/:id", h.GetItem())
+
+	items.POST("", h.CreateItem())
+
+	items.DELETE("/:id", h.DeleteItem())
 }

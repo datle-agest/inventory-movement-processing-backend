@@ -4,6 +4,7 @@ import (
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/internal/item/repository/postgres"
 	itemService "inventory-movement-processing/internal/item/service"
+	itemHttp "inventory-movement-processing/internal/item/transport/http"
 	sctx "inventory-movement-processing/pkg/service_context"
 
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,9 @@ type DBProvider interface {
 }
 type itemHandler interface {
 	GetItem() gin.HandlerFunc
+	CreateItem() gin.HandlerFunc
+	ListItem() gin.HandlerFunc
+	DeleteItem() gin.HandlerFunc
 }
 
 func ComposeItemService(serviceCtx sctx.ServiceContext) itemHandler {
@@ -23,7 +27,7 @@ func ComposeItemService(serviceCtx sctx.ServiceContext) itemHandler {
 
 	service := itemService.NewItemService(repo)
 
-	handler := itemHttp.NewHandler(service)
+	handler := itemHttp.NewItemHandler(service)
 
 	return handler
 }

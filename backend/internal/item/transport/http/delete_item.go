@@ -9,7 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (hdl handler) GetItem() gin.HandlerFunc {
+func (hdl handler) DeleteItem() gin.HandlerFunc {
+
 	return func(c *gin.Context) {
 
 		idStr := c.Param("id")
@@ -17,13 +18,11 @@ func (hdl handler) GetItem() gin.HandlerFunc {
 		id, err := strconv.Atoi(idStr)
 
 		if err != nil {
-			core.WriteError(
-				c, common.ErrBadRequest("invalid item id"),
-			)
+			core.WriteError(c, common.ErrBadRequest("invalid item id"))
 			return
 		}
 
-		item, err := hdl.service.GetItem(c.Request.Context(), id)
+		err = hdl.service.DeleteItem(c.Request.Context(), id)
 
 		if err != nil {
 			core.WriteError(c, err)
@@ -32,7 +31,10 @@ func (hdl handler) GetItem() gin.HandlerFunc {
 
 		c.JSON(
 			http.StatusOK,
-			core.Success(item),
+			core.SuccessWithMessage(
+				nil,
+				"item deleted successfully",
+			),
 		)
 	}
 }
