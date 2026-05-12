@@ -2,6 +2,7 @@ package redisc
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"inventory-movement-processing/pkg/logger"
@@ -95,4 +96,121 @@ func (r *redisComponent) Stop() error {
 
 func (r *redisComponent) GetClient() *redis.Client {
 	return r.client
+}
+
+func (r *redisComponent) Get(ctx context.Context, key string) (string, bool, error) {
+	val, err := r.client.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return val, true, nil
+}
+
+func (r *redisComponent) Set(ctx context.Context, key, value string, ttl time.Duration) error {
+	return r.client.Set(ctx, key, value, ttl).Err()
+}
+
+func (r *redisComponent) SetNX(ctx context.Context, key, value string, ttl time.Duration) (bool, error) {
+	return r.client.SetNX(ctx, key, value, ttl).Result()
+}
+
+func (r *redisComponent) Del(ctx context.Context, keys ...string) (int64, error) {
+	return r.client.Del(ctx, keys...).Result()
+}
+
+func (r *redisComponent) Exists(ctx context.Context, keys ...string) (int64, error) {
+	return r.client.Exists(ctx, keys...).Result()
+}
+
+func (r *redisComponent) Incr(ctx context.Context, key string) (int64, error) {
+	return r.client.Incr(ctx, key).Result()
+}
+
+func (r *redisComponent) IncrBy(ctx context.Context, key string, n int64) (int64, error) {
+	return r.client.IncrBy(ctx, key, n).Result()
+}
+
+func (r *redisComponent) GetJSON(ctx context.Context, key string, dst interface{}) (bool, error) {
+	raw, found, err := r.Get(ctx, key)
+	if err != nil || !found {
+		return found, err
+	}
+	if err := json.Unmarshal([]byte(raw), dst); err != nil {
+		return true, fmt.Errorf("unmarshal redis key %q: %w", key, err)
+	}
+	return true, nil
+}
+
+func (r *redisComponent) SetJSON(ctx context.Context, key string, src interface{}, ttl time.Duration) error {
+	b, err := json.Marshal(src)
+	if err != nil {
+		return fmt.Errorf("marshal redis key %q: %w", key, err)
+	}
+	return r.Set(ctx, key, string(b), ttl)
+}
+
+func (r *redisComponent) Expire(ctx context.Context, key string, ttl time.Duration) (bool, error) {
+	return r.client.Expire(ctx, key, ttl).Result()
+}
+
+func (r *redisComponent) TTL(ctx context.Context, key string) (time.Duration, error) {
+	return r.client.TTL(ctx, key).Result()
+}
+
+func (r *redisComponent) HGet(ctx context.Context, key, field string) (string, bool, error) {
+	val, err := r.client.HGet(ctx, key, field).Result()
+	if err == redis.Nil {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return val, true, nil
+}
+
+func (r *redisComponent) HSet(ctx context.Context, key string, values ...interface{}) error {
+	return r.client.HSet(ctx, key, values...).Err()
+}
+
+func (r *redisComponent) HGetAll(ctx context.Context, key string) (map[string]string, error) {
+	return r.client.HGetAll(ctx, key).Result()
+}
+
+func (r *redisComponent) HDel(ctx context.Context, key string, fields ...string) (int64, error) {
+	return r.client.HDel(ctx, key, fields...).Result()
+}
+
+func (r *redisComponent) LPush(ctx context.Context, key string, values ...interface{}) (int64, error) {
+	return r.client.LPush(ctx, key, values...).Result()
+}
+
+func (r *redisComponent) RPush(ctx context.Context, key string, values ...interface{}) (int64, error) {
+	return r.client.RPush(ctx, key, values...).Result()
+}
+
+func (r *redisComponent) LRange(ctx context.Context, key string, start, stop int64) ([]string, error) {
+	return r.client.LRange(ctx, key, start, stop).Result()
+}
+
+func (r *redisComponent) LLen(ctx context.Context, key string) (int64, error) {
+	return r.client.LLen(ctx, key).Result()
+}
+
+func (r *redisComponent) SAdd(ctx context.Context, key string, members ...interface{}) (int64, error) {
+	return r.client.SAdd(ctx, key, members...).Result()
+}
+
+func (r *redisComponent) SMembers(ctx context.Context, key string) ([]string, error) {
+	return r.client.SMembers(ctx, key).Result()
+}
+
+func (r *redisComponent) SIsMember(ctx context.Context, key string, member interface{}) (bool, error) {
+	return r.client.SIsMember(ctx, key, member).Result()
+}
+
+func (r *redisComponent) SRem(ctx context.Context, key string, members ...interface{}) (int64, error) {
+	return r.client.SRem(ctx, key, members...).Result()
 }
