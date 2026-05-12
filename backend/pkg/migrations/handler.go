@@ -12,7 +12,6 @@ func RunMigration(db *gorm.DB) error {
 	log.Println("Checking and running migrations...")
 
 	err := db.AutoMigrate(
-		&itemEntity.Category{},
 		&itemEntity.Item{},
 		&movementEntity.Movement{},
 		&reportEntity.Report{},
