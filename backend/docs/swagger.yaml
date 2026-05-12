@@ -1,0 +1,185 @@
+basePath: /api
+definitions:
+  core.APIResponse:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+      pagination:
+        $ref: '#/definitions/core.Pagination'
+      result: {}
+    type: object
+  core.Pagination:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  entity.Item:
+    properties:
+      created_at:
+        type: string
+      current_stock:
+        type: integer
+      id:
+        type: integer
+      low_stock_threshold:
+        type: integer
+      name:
+        type: string
+      sku:
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:3000
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: API for inventory movement processing system
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Inventory Movement Processing API
+  version: "1.0"
+paths:
+  /v1/items:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all inventory items
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of items
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                result:
+                  items:
+                    $ref: '#/definitions/entity.Item'
+                  type: array
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+      summary: List all items
+      tags:
+      - Items
+    post:
+      consumes:
+      - application/json
+      description: Create a new inventory item
+      parameters:
+      - description: Item data
+        in: body
+        name: item
+        required: true
+        schema:
+          $ref: '#/definitions/entity.Item'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Item created successfully
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                result:
+                  $ref: '#/definitions/entity.Item'
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+      summary: Create new item
+      tags:
+      - Items
+  /v1/items/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an inventory item by ID
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Item deleted successfully
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "400":
+          description: Invalid item ID
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "404":
+          description: Item not found
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+      summary: Delete item
+      tags:
+      - Items
+    get:
+      consumes:
+      - application/json
+      description: Get a single inventory item by ID
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Item details
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                result:
+                  $ref: '#/definitions/entity.Item'
+              type: object
+        "400":
+          description: Invalid item ID
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "404":
+          description: Item not found
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+      summary: Get item by ID
+      tags:
+      - Items
+schemes:
+- http
+- https
+swagger: "2.0"
