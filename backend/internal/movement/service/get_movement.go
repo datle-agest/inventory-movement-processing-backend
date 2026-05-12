@@ -6,7 +6,7 @@ import (
 	"inventory-movement-processing/internal/movement/entity"
 )
 
-func (s *service) GetMovement(ctx context.Context, itemId int) ([]entity.Movement, error) {
+func (s *service) GetMovementsByItemID(ctx context.Context, itemId int) ([]entity.Movement, error) {
 	if itemId <= 0 {
 		return nil, errors.New("invalid item id for history lookup")
 	}

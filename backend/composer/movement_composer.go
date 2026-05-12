@@ -11,7 +11,7 @@ import (
 )
 
 type movementHandler interface {
-	GetMovementById() gin.HandlerFunc
+	GetMovementsByItemID() gin.HandlerFunc
 }
 
 func ComposeMovementService(serviceCtx sctx.ServiceContext) movementHandler {
