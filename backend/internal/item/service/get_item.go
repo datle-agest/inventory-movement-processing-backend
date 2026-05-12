@@ -2,14 +2,22 @@ package service
 
 import (
 	"context"
+	"errors"
+	"inventory-movement-processing/common"
 	"inventory-movement-processing/internal/item/entity"
+
+	"gorm.io/gorm"
 )
 
-func (uc *service) GetItem(ctx context.Context, id int) (*entity.Item, error) {
-	return &entity.Item{
-		Name: "le quoc trung",
-	}, nil
-	// item, err := uc.itemRepository.GetItem(ctx, id)
+func (s *service) GetItem(ctx context.Context, id int) (*entity.Item, error) {
+	item, err := s.repo.GetItem(ctx, id)
 
-	// return item, err
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, common.ErrNotFound("item not found")
+		}
+		return nil, common.ErrInternal("cannot get item")
+	}
+
+	return item, nil
 }

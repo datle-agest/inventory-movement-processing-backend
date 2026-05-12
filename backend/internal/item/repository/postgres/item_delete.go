@@ -2,18 +2,20 @@ package postgres
 
 import (
 	"context"
-	"inventory-movement-processing/common"
 	"inventory-movement-processing/internal/item/entity"
+
+	"gorm.io/gorm"
 )
 
 func (repo *repository) DeleteItem(ctx context.Context, id int) error {
 	result := repo.db.WithContext(ctx).Delete(&entity.Item{}, id)
+
 	if result.Error != nil {
-		return common.ErrInternal("cannot delete item")
+		return result.Error
 	}
 
 	if result.RowsAffected == 0 {
-		return common.ErrNotFound("item not found")
+		return gorm.ErrRecordNotFound
 	}
 
 	return nil

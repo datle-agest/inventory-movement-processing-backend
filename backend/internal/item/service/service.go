@@ -7,17 +7,24 @@ import (
 
 type itemRepository interface {
 	GetItem(ctx context.Context, id int) (*entity.Item, error)
+	ListItem(ctx context.Context) ([]entity.Item, error)
+	CreateItem(ctx context.Context, item entity.Item) (*entity.Item, error)
+	DeleteItem(ctx context.Context, id int) error
+}
+
+type ItemService interface {
+	GetItem(ctx context.Context, id int) (*entity.Item, error)
+	ListItem(ctx context.Context) ([]entity.Item, error)
+	CreateItem(ctx context.Context, item entity.Item) (*entity.Item, error)
+	DeleteItem(ctx context.Context, id int) error
 }
 
 type service struct {
-	// itemRepository itemRepository
+	repo itemRepository
 }
 
-func NewItemService(
-// itemRepository itemRepository,
-) *service {
-	return &service{}
-	// return &usecase{
-	// 	itemRepository: itemRepository,
-	// }
+func NewItemService(repo itemRepository) ItemService {
+	return &service{
+		repo: repo,
+	}
 }
