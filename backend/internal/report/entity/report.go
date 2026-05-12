@@ -14,15 +14,15 @@ type ReportItem struct {
 type Report struct {
 	core.SQLModel
 
-	ReportDate            time.Time `json:"report_date"`
-	TotalInCount          int32     `json:"total_in_count"`
-	TotalOutCount         int32     `json:"total_out_count"`
-	TotalAdjustCount      int32     `json:"total_adjust_count"`
-	TotalQuantityReceived int32     `json:"total_qty_received"`
-	TotalQuantityIssued   int32     `json:"total_qty_issued"`
+	ReportDate            time.Time `json:"report_date"         gorm:"column:report_date;type:timestamptz;not null;uniqueIndex"`
+	TotalInCount          int32     `json:"total_in_count"      gorm:"column:total_in_count;not null;default:0"`
+	TotalOutCount         int32     `json:"total_out_count"     gorm:"column:total_out_count;not null;default:0"`
+	TotalAdjustCount      int32     `json:"total_adjust_count"  gorm:"column:total_adjust_count;not null;default:0"`
+	TotalQuantityReceived int32     `json:"total_qty_received"  gorm:"column:total_qty_received;not null;default:0"`
+	TotalQuantityIssued   int32     `json:"total_qty_issued"    gorm:"column:total_qty_issued;not null;default:0"`
 
-	Top5ActiveItem []ReportItem `gorm:"type:jsonb" json:"top5_active_items"`
-	LowStockItem   []ReportItem `gorm:"type:jsonb" json:"low_stock_items"`
+	Top5ActiveItem []ReportItem `json:"top5_active_items"   gorm:"column:top5_active_items;type:jsonb;serializer:json"`
+	LowStockItem   []ReportItem `json:"low_stock_items"     gorm:"column:low_stock_items;type:jsonb;serializer:json"`
 }
 
 func (Report) TableName() string {

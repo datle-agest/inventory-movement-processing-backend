@@ -19,7 +19,7 @@ import (
 // @Failure 400 {object} core.APIResponse "Invalid date format"
 // @Failure 404 {object} core.APIResponse "Report not found"
 // @Failure 500 {object} core.APIResponse "Internal server error"
-// @Router /v1/reports [get]
+// @Router /v1/reports/daily [get]
 func (h *reportHandler) GetReport() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dateStr := c.Query("date")
