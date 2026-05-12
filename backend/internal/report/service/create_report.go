@@ -11,45 +11,52 @@ import (
 func (s *reportService) CreateReport(ctx context.Context, date time.Time) (*entity.Report, error) {
 	from, to := normalizeDate(date)
 
-	summary, _ := s.movementRepository.GetSummaryByType(ctx, from, to)
+	summary, err := s.movementRepository.GetSummaryByType(ctx, from, to)
+	if err != nil {
+		return nil, err
+	}
 
-	agg, _ := s.movementRepository.GetAggregatedByItem(ctx, from, to)
+	agg, err := s.movementRepository.GetAggregatedByItem(ctx, from, to)
+	if err != nil {
+		return nil, err
+	}
 
 	top5 := calculateTop5(agg)
 
-	items, _ := s.itemRepository.GetLowStockItems(ctx)
+	items, err := s.itemRepository.GetLowStockItems(ctx)
+	if err != nil {
+		return nil, err
+	}
 	lowStock := mapLowStockItems(items)
 
 	report := &entity.Report{
-		ReportDate:       date,
-		TotalInCount:     summary["IN"],
-		TotalOutCount:    summary["OUT"],
-		TotalAdjustCount: summary["ADJUST"],
-		Top5ActiveItem:   top5,
-		LowStockItem:     lowStock,
+		ReportDate:            date,
+		TotalInCount:          summary.TotalInCount,
+		TotalOutCount:         summary.TotalOutCount,
+		TotalAdjustCount:      summary.TotalAdjustCount,
+		TotalQuantityReceived: summary.TotalQtyReceived, // IN qty + ADJUST dương
+		TotalQuantityIssued:   summary.TotalQtyIssued,   // OUT qty + ADJUST âm
+		Top5ActiveItem:        top5,
+		LowStockItem:          lowStock,
 	}
 
 	return report, s.reportRepository.CreateReport(ctx, report)
 }
 
 func normalizeDate(t time.Time) (start time.Time, end time.Time) {
-	loc := t.Location()
+	utc := t.UTC()
 
 	start = time.Date(
-		t.Year(),
-		t.Month(),
-		t.Day(),
+		utc.Year(), utc.Month(), utc.Day(),
 		0, 0, 0, 0,
-		loc,
+		time.UTC,
 	)
-
 	end = start.Add(24 * time.Hour)
 
 	return start, end
 }
 
 func calculateTop5(data map[int32]int32) []entity.ReportItem {
-
 	result := make([]entity.ReportItem, 0, len(data))
 
 	for id, qty := range data {

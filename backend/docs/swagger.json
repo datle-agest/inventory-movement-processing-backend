@@ -232,6 +232,49 @@
             }
         },
         "/v1/reports": {
+            "post": {
+                "description": "Create inventory report by date. If date is empty, current date will be used.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Create daily inventory report",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Report date (YYYY-MM-DD)",
+                        "name": "date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Report created successfully",
+                        "schema": {
+                            "$ref": "#/definitions/core.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid date format",
+                        "schema": {
+                            "$ref": "#/definitions/core.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/core.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/reports/daily": {
             "get": {
                 "description": "Get inventory report by date",
                 "consumes": [
@@ -268,47 +311,6 @@
                     },
                     "404": {
                         "description": "Report not found",
-                        "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create inventory report by date. If date is empty, current date will be used.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Reports"
-                ],
-                "summary": "Create daily inventory report",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Report date (YYYY-MM-DD)",
-                        "name": "date",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Report created successfully",
-                        "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid date format",
                         "schema": {
                             "$ref": "#/definitions/core.APIResponse"
                         }

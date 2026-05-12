@@ -15,11 +15,11 @@ const (
 
 type Movement struct {
 	core.SQLModel
-	ExternalID string           `json:"external_id"` // id này do scanner scan item mục đích là detect duplicate do chưa có DB đang inmemory
-	ItemID     int32            `json:"item_id"`
-	Item       *itemEntity.Item `json:"item,omitempty"`
-	Type       MovementType     `json:"movement_type"`
-	Quantity   int32            `json:"quantity"`
+	ExternalID string           `json:"external_id"    gorm:"column:external_id;type:varchar(255);uniqueIndex;not null"`
+	ItemID     int32            `json:"item_id"        gorm:"column:item_id;not null;index"`
+	Item       *itemEntity.Item `json:"item,omitempty" gorm:"foreignKey:ItemID;references:ID"`
+	Type       MovementType     `json:"movement_type"  gorm:"column:movement_type;type:varchar(10);not null;index"`
+	Quantity   int32            `json:"quantity"       gorm:"column:quantity;not null;check:chk_quantity_nonzero,quantity <> 0"`
 }
 
 func (Movement) TableName() string {
@@ -31,14 +31,28 @@ func (m *Movement) Validate() error {
 		return ErrInvalidItemID
 	}
 
-	if m.Quantity <= 0 {
-		return ErrInvalidQuantity
-	}
-
 	switch m.Type {
-	case MovementTypeIn, MovementTypeOut, MovementTypeAdjust:
-		return nil
+	case MovementTypeIn, MovementTypeOut:
+		if m.Quantity <= 0 {
+			return ErrInvalidQuantity
+		}
+	case MovementTypeAdjust:
+		if m.Quantity == 0 {
+			return ErrInvalidQuantity
+		}
 	default:
 		return ErrInvalidType
 	}
+
+	return nil
+}
+
+type MovementSummary struct {
+	TotalInCount     int32
+	TotalQtyReceived int32
+
+	TotalOutCount  int32
+	TotalQtyIssued int32
+
+	TotalAdjustCount int32
 }

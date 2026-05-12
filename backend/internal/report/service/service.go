@@ -22,7 +22,7 @@ type movementRepository interface {
 	)
 
 	GetSummaryByType(ctx context.Context, from, to time.Time) (
-		map[movementEntity.MovementType]int32, // IN/OUT/ADJUST totals
+		*movementEntity.MovementSummary, // IN/OUT/ADJUST totals
 		error,
 	)
 }
