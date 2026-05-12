@@ -6,12 +6,12 @@ import (
 	"inventory-movement-processing/internal/movement/entity"
 )
 
-func (s *movementService) GetMovement(ctx context.Context, itemId int) ([]entity.Movement, error) {
+func (s *service) GetMovement(ctx context.Context, itemId int) ([]entity.Movement, error) {
 	if itemId <= 0 {
 		return nil, errors.New("invalid item id for history lookup")
 	}
 
-	movements, err := s.repo.GetMovementsByItemID(ctx, itemId)
+	movements, err := s.movementRepo.GetMovementsByItemID(ctx, itemId)
 	if err != nil {
 		return nil, err
 	}

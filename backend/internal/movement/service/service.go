@@ -8,6 +8,7 @@ import (
 
 type movementRepository interface {
 	GetMovementById(ctx context.Context, id int) (*entity.Movement, error)
+	GetMovementsByItemID(ctx context.Context, itemId int) ([]entity.Movement, error)
 }
 
 type MovementService interface {
