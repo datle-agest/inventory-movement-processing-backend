@@ -14,15 +14,15 @@ const (
 	StatusDuplicate ProcessStatus = "duplicate"
 )
 
-func (uc *service) ProcessOne(ctx context.Context, m *entity.Movement) ProcessStatus {
+func (s *service) ProcessOne(ctx context.Context, m *entity.Movement) ProcessStatus {
 
-	uc.mu.Lock()
-	if uc.seen[m.ExternalID] {
-		uc.mu.Unlock()
+	s.mu.Lock()
+	if s.seen[m.ExternalID] {
+		s.mu.Unlock()
 		return StatusDuplicate
 	}
-	uc.seen[m.ExternalID] = true
-	uc.mu.Unlock()
+	s.seen[m.ExternalID] = true
+	s.mu.Unlock()
 
 	// validate
 	if err := m.Validate(); err != nil {

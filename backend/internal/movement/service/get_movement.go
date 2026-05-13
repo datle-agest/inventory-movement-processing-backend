@@ -17,5 +17,4 @@ func (s *service) GetMovementsByItemID(ctx context.Context, itemId int) ([]entit
 	}
 
 	return movements, nil
-
 }

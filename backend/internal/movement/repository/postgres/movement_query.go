@@ -91,3 +91,9 @@ func (r *movementRepository) GetSummaryByType(ctx context.Context, from, to time
 
 	return summary, nil
 }
+
+func (r *movementRepository) GetMovementsByItemID(ctx context.Context, itemId int) ([]movementEntity.Movement, error) {
+	var movements []movementEntity.Movement
+	err := r.db.WithContext(ctx).Where("item_id = ?", itemId).Find(&movements).Error
+	return movements, err
+}
