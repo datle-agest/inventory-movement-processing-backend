@@ -1,10 +1,14 @@
-package migrations 
+package migrations
 
 import (
-	"log"
 	itemEntity "inventory-movement-processing/internal/item/entity"
+	importBatchEntity "inventory-movement-processing/internal/movement/entity"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
+	dailyItemSummaryEntity "inventory-movement-processing/internal/report/entity"
 	reportEntity "inventory-movement-processing/internal/report/entity"
+
+	"log"
+
 	"gorm.io/gorm"
 )
 
@@ -15,6 +19,8 @@ func RunMigration(db *gorm.DB) error {
 		&itemEntity.Item{},
 		&movementEntity.Movement{},
 		&reportEntity.Report{},
+		&importBatchEntity.ImportBatch{},
+		&dailyItemSummaryEntity.DailyItemSummary{},
 	)
 
 	if err != nil {
