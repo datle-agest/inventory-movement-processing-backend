@@ -231,6 +231,71 @@
                 }
             }
         },
+        "/v1/movements/item/{id}": {
+            "get": {
+                "description": "Get all inventory movements for a specific item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Movements"
+                ],
+                "summary": "Get movements by item ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of movements for the item",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/core.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "result": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid item ID",
+                        "schema": {
+                            "$ref": "#/definitions/core.APIResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Item not found",
+                        "schema": {
+                            "$ref": "#/definitions/core.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/core.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/reports": {
             "post": {
                 "description": "Create inventory report by date. If date is empty, current date will be used.",
