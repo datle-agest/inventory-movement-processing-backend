@@ -48,6 +48,9 @@ services:
 
       REDIS_HOST: redis
 
+      STAFF_API_KEY: 82b81a84c19b8d17e6c0a4b9a3553a4e
+      MANAGER_API_KEY: 0a04630fdcfebe605c3b3c9ece58b824 
+
     ports:
       - "3000:3000"
 
