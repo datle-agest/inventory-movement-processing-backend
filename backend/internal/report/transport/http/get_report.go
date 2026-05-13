@@ -1,8 +1,6 @@
 package http
 
 import (
-	"inventory-movement-processing/common"
-	"inventory-movement-processing/pkg/core"
 	"net/http"
 	"time"
 
@@ -15,34 +13,42 @@ import (
 // @Tags Reports
 // @Accept json
 // @Produce json
-// @Param date query string true "Report date (YYYY-MM-DD)"
+// @Param date query string false "Report date (YYYY-MM-DD)"
 // @Success 200 {object} core.APIResponse "Report retrieved successfully"
 // @Failure 400 {object} core.APIResponse "Invalid date format"
 // @Failure 404 {object} core.APIResponse "Report not found"
 // @Failure 500 {object} core.APIResponse "Internal server error"
 // @Router /v1/reports/daily [get]
-func (h *reportHandler) GetReport() gin.HandlerFunc {
+func (h *reportHandler) GenerateDailySummary() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dateStr := c.Query("date")
+
 		if dateStr == "" {
-			core.WriteError(c, common.ErrBadRequest("query param 'date' is required (YYYY-MM-DD)"))
-		}
-
-		date, err := time.Parse(time.DateOnly, dateStr) // "2006-01-02"
-		if err != nil {
-			core.WriteError(c, common.ErrBadRequest("invalid date format, expected YYYY-MM-DD"))
-		}
-
-		report, err := h.reportService.GetReport(c.Request.Context(), date)
-		if err != nil {
-			core.WriteError(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "date is required",
+			})
 			return
 		}
 
-		c.JSON(
-			http.StatusOK,
-			core.Success(report),
-		)
+		date, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid date format, expected YYYY-MM-DD",
+			})
+			return
+		}
+
+		err = h.reportService.GenerateDailySummary(c.Request.Context(), date)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": "daily summary generated successfully",
+		})
 	}
 
 }

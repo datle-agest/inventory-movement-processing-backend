@@ -359,8 +359,7 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Report date (YYYY-MM-DD)",
                         "name": "date",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     }
                 ],
                 "responses": {

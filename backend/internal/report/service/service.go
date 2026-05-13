@@ -2,51 +2,40 @@ package service
 
 import (
 	"context"
-	itemEntity "inventory-movement-processing/internal/item/entity"
-	movementEntity "inventory-movement-processing/internal/movement/entity"
+	"inventory-movement-processing/common"
 	reportEntity "inventory-movement-processing/internal/report/entity"
 	"time"
 )
 
 type reportRepository interface {
-	GetReportByDate(ctx context.Context, date time.Time) (*reportEntity.Report, error)
-	CreateReport(ctx context.Context, data *reportEntity.Report) error
+	UpsertDailyItemSummary(
+		ctx context.Context,
+		data []*reportEntity.DailyItemSummary,
+	) error
+	ListTopActiveItemsByDate(ctx context.Context, date time.Time, limit int) ([]*reportEntity.DailyItemSummary, error)
 }
 
 type movementRepository interface {
-	GetByDateRange(ctx context.Context, from, to time.Time) ([]movementEntity.Movement, error)
-
-	GetAggregatedByItem(ctx context.Context, from, to time.Time) (
-		map[int32]int32, // item_id -> total quantity
-		error,
-	)
-
-	GetSummaryByType(ctx context.Context, from, to time.Time) (
-		*movementEntity.MovementSummary, // IN/OUT/ADJUST totals
-		error,
-	)
-}
-
-type itemRepository interface {
-	GetItemByIDs(ctx context.Context, ids []int32) ([]itemEntity.Item, error)
-
-	GetLowStockItems(ctx context.Context) ([]itemEntity.Item, error)
+	AggregateDailyItemSummaryFromMovement(
+		ctx context.Context,
+		date time.Time,
+	) ([]*reportEntity.DailyItemSummary, error)
 }
 
 type reportService struct {
 	reportRepository   reportRepository
 	movementRepository movementRepository
-	itemRepository     itemRepository
+	cacheStore         common.CacheProvider
 }
 
 func NewReportService(
 	reportRepository reportRepository,
-	movemovementRepository movementRepository,
-	itemRepository itemRepository,
+	movementRepository movementRepository,
+	cacheStore common.CacheProvider,
 ) *reportService {
 	return &reportService{
 		reportRepository:   reportRepository,
-		movementRepository: movemovementRepository,
-		itemRepository:     itemRepository,
+		movementRepository: movementRepository,
+		cacheStore:         cacheStore,
 	}
 }

@@ -257,7 +257,6 @@ paths:
       - description: Report date (YYYY-MM-DD)
         in: query
         name: date
-        required: true
         type: string
       produces:
       - application/json

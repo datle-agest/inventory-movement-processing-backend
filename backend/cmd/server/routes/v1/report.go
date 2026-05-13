@@ -12,6 +12,6 @@ func RegisterReportRoutes(serviceCtx sctx.ServiceContext, r *gin.RouterGroup) {
 
 	reports := r.Group("/reports")
 
-	reports.GET("/daily", h.GetReport())
-	reports.POST("", h.CreateReport())
+	reports.GET("/daily", h.GenerateDailySummary())
+	reports.GET("/top-active-items", h.ListTopActiveItems())
 }

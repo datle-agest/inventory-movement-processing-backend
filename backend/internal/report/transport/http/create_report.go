@@ -1,9 +1,8 @@
 package http
 
 import (
-	"inventory-movement-processing/common"
-	"inventory-movement-processing/pkg/core"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,31 +19,48 @@ import (
 // @Failure 400 {object} core.APIResponse "Invalid date format"
 // @Failure 500 {object} core.APIResponse "Internal server error"
 // @Router /v1/reports [post]
-func (h *reportHandler) CreateReport() gin.HandlerFunc {
+func (h *reportHandler) ListTopActiveItems() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dateStr := c.Query("date")
+		limitStr := c.DefaultQuery("limit", "5")
 
-		// Default về hôm nay nếu không truyền date
-		var date time.Time
 		if dateStr == "" {
-			date = time.Now()
-		} else {
-			parsed, err := time.Parse(time.DateOnly, dateStr)
-			if err != nil {
-				core.WriteError(c, common.ErrBadRequest("invalid date format, expected YYYY-MM-DD"))
-			}
-			date = parsed
-		}
-
-		report, err := h.reportService.CreateReport(c.Request.Context(), date)
-		if err != nil {
-			core.WriteError(c, err)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "date is required",
+			})
 			return
 		}
 
-		c.JSON(
-			http.StatusOK,
-			core.Success(report),
+		date, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid date format, expected YYYY-MM-DD",
+			})
+			return
+		}
+
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil || limit <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid limit",
+			})
+			return
+		}
+
+		result, err := h.reportService.ListTopActiveItems(
+			c.Request.Context(),
+			date,
+			limit,
 		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"data": result,
+		})
 	}
 }

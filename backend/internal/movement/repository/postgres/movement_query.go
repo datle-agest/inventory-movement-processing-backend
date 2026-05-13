@@ -2,92 +2,38 @@ package postgres
 
 import (
 	"context"
-	movementEntity "inventory-movement-processing/internal/movement/entity"
+	"inventory-movement-processing/internal/movement/entity"
+	reportEntity "inventory-movement-processing/internal/report/entity"
 	"time"
 )
 
-func (r *movementRepository) GetByDateRange(ctx context.Context, from, to time.Time) ([]movementEntity.Movement, error) {
-	var movements []movementEntity.Movement
+func (repo *movementRepository) AggregateDailyItemSummaryFromMovement(
+	ctx context.Context,
+	date time.Time,
+) ([]*reportEntity.DailyItemSummary, error) {
 
-	err := r.db.WithContext(ctx).
-		Where("created_at >= ? AND created_at < ?", from, to).
-		Find(&movements).Error
-	if err != nil {
-		return nil, err
-	}
+	var results []*reportEntity.DailyItemSummary
+	var tmp entity.Movement
 
-	return movements, nil
-}
+	start := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+	end := start.Add(24 * time.Hour)
 
-func (r *movementRepository) GetAggregatedByItem(ctx context.Context, from, to time.Time) (map[int32]int32, error) {
-	type result struct {
-		ItemID        int32
-		TotalQuantity int32
-	}
-
-	var rows []result
-
-	err := r.db.WithContext(ctx).
-		Model(&movementEntity.Movement{}).
-		Select("item_id, SUM(ABS(quantity)) AS total_quantity").
-		Where("created_at >= ? AND created_at < ?", from, to).
-		Group("item_id").
-		Scan(&rows).Error
-	if err != nil {
-		return nil, err
-	}
-
-	agg := make(map[int32]int32, len(rows))
-	for _, row := range rows {
-		agg[row.ItemID] = row.TotalQuantity
-	}
-
-	return agg, nil
-}
-
-func (r *movementRepository) GetSummaryByType(ctx context.Context, from, to time.Time) (*movementEntity.MovementSummary, error) {
-	type result struct {
-		MovementType     movementEntity.MovementType
-		Count            int32
-		TotalPositiveQty int32
-		TotalNegativeQty int32
-	}
-
-	var rows []result
-
-	err := r.db.WithContext(ctx).
-		Model(&movementEntity.Movement{}).
+	err := repo.db.WithContext(ctx).
+		Table(tmp.TableName()).
 		Select(`
-			movement_type,
-			COUNT(*) AS count,
-			COALESCE(SUM(CASE WHEN quantity > 0 THEN quantity ELSE 0 END), 0)      AS total_positive_qty,
-			COALESCE(SUM(CASE WHEN quantity < 0 THEN ABS(quantity) ELSE 0 END), 0) AS total_negative_qty
+			item_id,
+			DATE(created_at) as summary_date,
+			SUM(CASE WHEN movement_type = 'IN' THEN quantity ELSE 0 END) as total_in,
+			SUM(CASE WHEN movement_type = 'OUT' THEN quantity ELSE 0 END) as total_out,
+			SUM(CASE WHEN movement_type = 'ADJUST' THEN quantity ELSE 0 END) as total_adjust
 		`).
-		Where("created_at >= ? AND created_at < ?", from, to).
-		Group("movement_type").
-		Scan(&rows).Error
+		Where("created_at >= ? AND created_at < ?", start, end).
+		Group("item_id, DATE(created_at)").
+		Scan(&results).Error
+
 	if err != nil {
 		return nil, err
 	}
 
-	summary := &movementEntity.MovementSummary{}
-
-	for _, row := range rows {
-		switch row.MovementType {
-		case movementEntity.MovementTypeIn:
-			summary.TotalInCount = row.Count
-			summary.TotalQtyReceived += row.TotalPositiveQty
-
-		case movementEntity.MovementTypeOut:
-			summary.TotalOutCount = row.Count
-			summary.TotalQtyIssued += row.TotalPositiveQty
-
-		case movementEntity.MovementTypeAdjust:
-			summary.TotalAdjustCount = row.Count
-			summary.TotalQtyReceived += row.TotalPositiveQty
-			summary.TotalQtyIssued += row.TotalNegativeQty
-		}
-	}
-
-	return summary, nil
+	return results, nil
 }
