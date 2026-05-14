@@ -25,3 +25,11 @@ func ErrConflict(msg string) *AppError {
 func ErrInternal(msg string) *AppError {
 	return &AppError{StatusCode: http.StatusInternalServerError, Code: "INTERNAL_ERROR", Message: msg}
 }
+
+func ErrUnauthorized(msg string) *AppError {
+    return &AppError{StatusCode: http.StatusUnauthorized, Code: "UNAUTHORIZED", Message: msg}
+}
+
+func ErrForbidden(msg string) *AppError {
+    return &AppError{StatusCode: http.StatusForbidden, Code: "FORBIDDEN", Message: msg}
+}
