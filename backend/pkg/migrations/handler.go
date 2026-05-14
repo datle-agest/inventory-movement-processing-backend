@@ -1,7 +1,6 @@
 package migrations
 
 import (
-	"inventory-movement-processing/internal/import_batches/entity"
 	itemEntity "inventory-movement-processing/internal/item/entity"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
 	dailyItemSummaryEntity "inventory-movement-processing/internal/report/entity"
@@ -19,7 +18,7 @@ func RunMigration(db *gorm.DB) error {
 		&itemEntity.Item{},
 		&movementEntity.Movement{},
 		&reportEntity.Report{},
-		&entity.ImportBatch{},
+		//&entity.ImportBatch{},
 		&dailyItemSummaryEntity.DailyItemSummary{},
 	)
 
