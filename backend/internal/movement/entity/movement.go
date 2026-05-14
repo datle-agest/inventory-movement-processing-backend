@@ -49,6 +49,14 @@ func (m *Movement) Validate() error {
 	return nil
 }
 
+func (m MovementType) IsValid() bool {
+	switch m {
+	case MovementTypeIn, MovementTypeOut, MovementTypeAdjust:
+		return true
+	}
+	return false
+}
+
 type MovementSummary struct {
 	TotalInCount     int32
 	TotalQtyReceived int32

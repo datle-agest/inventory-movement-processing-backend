@@ -9,6 +9,11 @@ import (
 
 type Job func()
 
+type WorkerPool interface {
+	Submit(job Job)
+	Wait()
+}
+
 type workerPool struct {
 	id         string
 	logger     logger.Logger
@@ -16,6 +21,7 @@ type workerPool struct {
 	queueSize  int
 	jobQueue   chan Job
 	wg         sync.WaitGroup
+	jobWg      sync.WaitGroup
 	quit       chan struct{}
 }
 
@@ -56,6 +62,7 @@ func (wp *workerPool) Activate(sc sctx.ServiceContext) error {
 
 func (wp *workerPool) Stop() error {
 	close(wp.quit)
+	close(wp.jobQueue)
 	wp.wg.Wait()
 	return nil
 }
@@ -99,5 +106,16 @@ func (wp *workerPool) start() {
 }
 
 func (wp *workerPool) Submit(job Job) {
-	wp.jobQueue <- job
+	wp.jobWg.Add(1)
+
+	wp.jobQueue <- func() {
+
+		defer wp.jobWg.Done()
+
+		job()
+	}
+}
+
+func (wp *workerPool) Wait() {
+	wp.jobWg.Wait()
 }
