@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (repo *movementRepository) AggregateDailyItemSummaryFromMovement(
+func (r *movementRepository) AggregateDailyItemSummaryFromMovement(
 	ctx context.Context,
 	date time.Time,
 ) ([]*reportEntity.DailyItemSummary, error) {
@@ -18,7 +18,7 @@ func (repo *movementRepository) AggregateDailyItemSummaryFromMovement(
 	start := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	end := start.Add(24 * time.Hour)
 
-	err := repo.db.WithContext(ctx).
+	err := r.db.WithContext(ctx).
 		Table(tmp.TableName()).
 		Select(`
 			item_id,
@@ -38,8 +38,8 @@ func (repo *movementRepository) AggregateDailyItemSummaryFromMovement(
 	return results, nil
 }
 
-func (r *movementRepository) GetMovementsByItemID(ctx context.Context, itemId int) ([]movementEntity.Movement, error) {
-	var movements []movementEntity.Movement
+func (r *movementRepository) GetMovementsByItemID(ctx context.Context, itemId int) ([]entity.Movement, error) {
+	var movements []entity.Movement
 	err := r.db.WithContext(ctx).Where("item_id = ?", itemId).Find(&movements).Error
 	return movements, err
 }
