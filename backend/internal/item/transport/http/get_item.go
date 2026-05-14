@@ -35,7 +35,7 @@ func (hdl handler) GetItem() gin.HandlerFunc {
 			return
 		}
 
-		item, err := hdl.service.GetItem(c.Request.Context(), id)
+		item, err := hdl.service.GetItem(c.Request.Context(), int32(id))
 
 		if err != nil {
 			core.WriteError(c, err)

@@ -20,7 +20,6 @@ type Movement struct {
 	Item       *itemEntity.Item `json:"item,omitempty" gorm:"foreignKey:ItemID;references:ID"`
 	Type       MovementType     `json:"movement_type"  gorm:"column:movement_type;type:varchar(10);not null;index"`
 	Quantity   int32            `json:"quantity"       gorm:"column:quantity;not null;check:chk_quantity_nonzero,quantity <> 0"`
-	BatchID    *int32           `json:"batch_id"       gorm:"column:batch_id;index"`
 	Note       *string          `json:"note"           gorm:"column:note;type:text"`
 }
 
