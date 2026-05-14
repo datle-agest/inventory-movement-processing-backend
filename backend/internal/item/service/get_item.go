@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func (s *service) GetItem(ctx context.Context, id int) (*entity.Item, error) {
+func (s *service) GetItem(ctx context.Context, id int32) (*entity.Item, error) {
 	item, err := s.repo.GetItem(ctx, id)
 
 	if err != nil {

@@ -46,7 +46,7 @@ func (repo *repository) ListItem(ctx context.Context) ([]itemEntity.Item, error)
 	return items, nil
 }
 
-func (repo *repository) GetItem(ctx context.Context, id int) (*itemEntity.Item, error) {
+func (repo *repository) GetItem(ctx context.Context, id int32) (*itemEntity.Item, error) {
 
 	var item itemEntity.Item
 

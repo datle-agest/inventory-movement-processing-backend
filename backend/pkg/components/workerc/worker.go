@@ -3,6 +3,7 @@ package workerc
 import (
 	"inventory-movement-processing/pkg/logger"
 	sctx "inventory-movement-processing/pkg/service_context"
+	"runtime"
 	"sync"
 )
 
@@ -27,14 +28,16 @@ func NewPool(id string, numWorkers int, queueSize int) *workerPool {
 }
 
 // component interface
+
 func (wp *workerPool) ID() string { return wp.id }
 
 func (wp *workerPool) InitFlags() {
-	if wp.numWorkers == 0 {
-		wp.numWorkers = 10
+	if wp.numWorkers <= 0 {
+		wp.numWorkers = runtime.NumCPU() * 4
 	}
-	if wp.queueSize == 0 {
-		wp.queueSize = 100
+
+	if wp.queueSize <= 0 {
+		wp.queueSize = wp.numWorkers * 10
 	}
 }
 
@@ -61,18 +64,37 @@ func (wp *workerPool) Stop() error {
 
 func (wp *workerPool) start() {
 	for i := 0; i < wp.numWorkers; i++ {
+
 		wp.wg.Add(1)
-		go func() {
+
+		go func(workerID int) {
 			defer wp.wg.Done()
+
 			for {
 				select {
-				case job := <-wp.jobQueue:
-					job()
+
+				case job, ok := <-wp.jobQueue:
+					if !ok {
+						return
+					}
+
+					func() {
+						defer func() {
+							if r := recover(); r != nil {
+								if wp.logger != nil {
+									wp.logger.Error("worker panic", r)
+								}
+							}
+						}()
+
+						job()
+					}()
+
 				case <-wp.quit:
 					return
 				}
 			}
-		}()
+		}(i)
 	}
 }
 
