@@ -23,6 +23,68 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/v1/inventory-movements/import": {
+            "post": {
+                "description": "Upload CSV file to process inventory movements in batch",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Movements"
+                ],
+                "summary": "Import inventory movements from CSV",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "CSV file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Import result summary",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/core.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "result": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid file or request",
+                        "schema": {
+                            "$ref": "#/definitions/core.APIResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Duplicate movement",
+                        "schema": {
+                            "$ref": "#/definitions/core.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/core.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/items": {
             "get": {
                 "description": "Get list of all inventory items",

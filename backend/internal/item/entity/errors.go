@@ -9,4 +9,7 @@ var (
 	ErrInvalidThreshold  = errors.New("low stock threshold cannot be negative")
 	ErrInvalidCategoryID = errors.New("category_id must be greater than 0")
 	ErrCategoryNameEmpty = errors.New("category name cannot be empty")
+	ErrItemNotFound      = errors.New("item not found")
+	ErrInsufficientStock = errors.New("insufficient stock balance")
+	ErrDuplicateMovement = errors.New("movement with this external_id already exists")
 )

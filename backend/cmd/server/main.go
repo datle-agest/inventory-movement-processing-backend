@@ -50,7 +50,7 @@ func newServiceContext() sctx.ServiceContext {
 		sctx.WithName("inventory-movement-processing"),
 		sctx.WithComponent(configc.NewConfigComponent(common.KeyComponentConfig)),
 		sctx.WithComponent(ginc.NewGin(common.KeyComponentGin)),
-		sctx.WithComponent(workerc.NewPool(common.KeyCompWorkerPool, 1, 1)),
+		sctx.WithComponent(workerc.NewPool(common.KeyCompWorkerPool, 0, 0)),
 		sctx.WithComponent(gormc.NewGormDB(common.KeyComponentPostgres, "")),
 		sctx.WithComponent(redisc.NewRedis(common.KeyComponentRedis)),
 	)

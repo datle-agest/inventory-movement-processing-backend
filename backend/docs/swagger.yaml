@@ -49,6 +49,44 @@ info:
   title: Inventory Movement Processing API
   version: "1.0"
 paths:
+  /v1/inventory-movements/import:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload CSV file to process inventory movements in batch
+      parameters:
+      - description: CSV file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Import result summary
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                result:
+                  type: object
+              type: object
+        "400":
+          description: Invalid file or request
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "409":
+          description: Duplicate movement
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+      summary: Import inventory movements from CSV
+      tags:
+      - Movements
   /v1/items:
     get:
       consumes:
