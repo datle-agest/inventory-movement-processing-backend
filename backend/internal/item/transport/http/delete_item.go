@@ -9,18 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// DeleteItem godoc
-// @Summary Delete item
-// @Description Delete an inventory item by ID
-// @Tags Items
-// @Accept json
-// @Produce json
-// @Param id path int true "Item ID"
-// @Success 200 {object} core.APIResponse "Item deleted successfully"
-// @Failure 400 {object} core.APIResponse "Invalid item ID"
-// @Failure 404 {object} core.APIResponse "Item not found"
-// @Failure 500 {object} core.APIResponse "Internal server error"
-// @Router /v1/items/{id} [delete]
 func (hdl handler) DeleteItem() gin.HandlerFunc {
 
 	return func(c *gin.Context) {

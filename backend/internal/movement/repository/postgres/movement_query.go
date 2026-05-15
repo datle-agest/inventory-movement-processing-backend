@@ -25,7 +25,7 @@ func (r *movementRepository) AggregateDailyItemSummaryFromMovement(
 			DATE(created_at) as summary_date,
 			SUM(CASE WHEN movement_type = 'IN' THEN quantity ELSE 0 END) as total_in,
 			SUM(CASE WHEN movement_type = 'OUT' THEN quantity ELSE 0 END) as total_out,
-			SUM(CASE WHEN movement_type = 'ADJUST' THEN quantity ELSE 0 END) as total_adjust
+			SUM(CASE WHEN movement_type = 'ADJUST' THEN ABS(quantity) ELSE 0 END) as total_adjust
 		`).
 		Where("created_at >= ? AND created_at < ?", start, end).
 		Group("item_id, DATE(created_at)").

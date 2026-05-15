@@ -34,23 +34,31 @@ type ProcessResult struct {
 	ErrorReason string        `json:"error_reason,omitempty"`
 }
 
-func (s *service) ImportBatch(ctx context.Context, file *multipart.FileHeader) (map[string]interface{}, error) {
+type ImportBatchResult struct {
+	Total      int             `json:"total"`
+	Success    int             `json:"success"`
+	Rejected   int             `json:"rejected"`
+	Duplicate  int             `json:"duplicate"`
+	FailedRows []ProcessResult `json:"failed_rows"`
+}
+
+func (s *service) ImportBatch(ctx context.Context, file *multipart.FileHeader) (ImportBatchResult, error) {
 	// validate file
 	if err := s.validateFile(file); err != nil {
-		return nil, err
+		return ImportBatchResult{}, err
 	}
 
 	// open file
 	f, err := file.Open()
 	if err != nil {
-		return nil, common.ErrInternal("cannot open file")
+		return ImportBatchResult{}, common.ErrInternal("cannot open file")
 	}
 	defer f.Close()
 
 	// parse csv
 	validRows, parseFailedRows, err := s.parseCSV(f)
 	if err != nil {
-		return nil, err
+		return ImportBatchResult{}, err
 	}
 
 	// run worker
@@ -224,7 +232,7 @@ func (s *service) runImportWorkers(ctx context.Context, rows []csvMovementRow) c
 func (s *service) summarizeResults(total int,
 	parseFailedRows []ProcessResult,
 	resultCh chan ProcessResult,
-) map[string]interface{} {
+) ImportBatchResult {
 
 	var success, rejected, duplicate int
 	// Khởi tạo mảng failedRows chứa sẵn các lỗi từ lúc parseCSV
@@ -247,11 +255,11 @@ func (s *service) summarizeResults(total int,
 		}
 	}
 
-	return map[string]interface{}{
-		"total":       total,
-		"success":     success,
-		"rejected":    rejected,
-		"duplicate":   duplicate,
-		"failed_rows": failedRows,
+	return ImportBatchResult{
+		Total:      total,
+		Success:    success,
+		Rejected:   rejected,
+		Duplicate:  duplicate,
+		FailedRows: failedRows,
 	}
 }
