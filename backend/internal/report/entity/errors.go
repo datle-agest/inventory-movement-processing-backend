@@ -10,7 +10,8 @@ var (
 
 // DailyItemSummary errors
 var (
-	ErrInvalidDate        = errors.New("summary_date cannot be empty")
-	ErrSummaryNotFound    = errors.New("daily summary not found")
-	ErrInvalidSummaryDate = errors.New("summary date must be valid date")
+	ErrInvalidDate              = errors.New("summary_date cannot be empty")
+	ErrSummaryNotFound          = errors.New("daily summary not found")
+	ErrInvalidSummaryDate       = errors.New("summary date must be valid date")
+	ErrFailedToAggregateSummary = errors.New("failed to aggregate item summary")
 )

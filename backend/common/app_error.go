@@ -27,9 +27,9 @@ func ErrInternal(msg string) *AppError {
 }
 
 func ErrUnauthorized(msg string) *AppError {
-    return &AppError{StatusCode: http.StatusUnauthorized, Code: "UNAUTHORIZED", Message: msg}
+	return &AppError{StatusCode: http.StatusUnauthorized, Code: "UNAUTHORIZED", Message: msg}
 }
 
 func ErrForbidden(msg string) *AppError {
-    return &AppError{StatusCode: http.StatusForbidden, Code: "FORBIDDEN", Message: msg}
+	return &AppError{StatusCode: http.StatusForbidden, Code: "FORBIDDEN", Message: msg}
 }

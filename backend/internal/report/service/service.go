@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"inventory-movement-processing/common"
+	itemEntity "inventory-movement-processing/internal/item/entity"
 	reportEntity "inventory-movement-processing/internal/report/entity"
 	"time"
 )
@@ -22,9 +23,14 @@ type movementRepository interface {
 	) ([]*reportEntity.DailyItemSummary, error)
 }
 
+type itemRepository interface {
+	ListLowStockItems(ctx context.Context) ([]*itemEntity.Item, error)
+}
+
 type reportService struct {
 	reportRepository   reportRepository
 	movementRepository movementRepository
+	itemRepository     itemRepository
 	cacheStore         common.CacheProvider
 	config             common.Config
 }
@@ -32,12 +38,14 @@ type reportService struct {
 func NewReportService(
 	reportRepository reportRepository,
 	movementRepository movementRepository,
+	itemRepository itemRepository,
 	cacheStore common.CacheProvider,
 	config common.Config,
 ) *reportService {
 	return &reportService{
 		reportRepository:   reportRepository,
 		movementRepository: movementRepository,
+		itemRepository:     itemRepository,
 		cacheStore:         cacheStore,
 		config:             config,
 	}

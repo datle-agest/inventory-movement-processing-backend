@@ -7,16 +7,11 @@ import (
 )
 
 type reportService interface {
-	GenerateDailySummary(
-		ctx context.Context,
-		date time.Time,
-	) error
-
-	ListTopActiveItems(
+	GetDailyReport(
 		ctx context.Context,
 		date time.Time,
 		limit int,
-	) ([]*entity.DailyItemSummary, error)
+	) (*entity.TopActiveItemsResult, error)
 }
 
 type reportHandler struct {

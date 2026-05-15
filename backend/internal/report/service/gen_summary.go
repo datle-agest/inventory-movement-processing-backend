@@ -16,14 +16,12 @@ func (s *reportService) GenerateDailySummary(
 		return err
 	}
 
-	if len(summaries) == 0 {
-		return nil
-	}
-
-	err = s.reportRepository.
-		UpsertDailyItemSummary(ctx, summaries)
-	if err != nil {
-		return err
+	if len(summaries) > 0 {
+		err = s.reportRepository.
+			UpsertDailyItemSummary(ctx, summaries)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

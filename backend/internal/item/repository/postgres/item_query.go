@@ -22,17 +22,22 @@ func (repo *repository) GetItemByIDs(ctx context.Context, ids []int32) ([]itemEn
 	return items, nil
 }
 
-func (repo *repository) GetLowStockItems(ctx context.Context) ([]itemEntity.Item, error) {
-	var items []itemEntity.Item
+func (repo *repository) ListLowStockItems(
+	ctx context.Context,
+) ([]*itemEntity.Item, error) {
+
+	var results []*itemEntity.Item
 
 	err := repo.db.WithContext(ctx).
-		Where("current_stock <= low_stock_threshold").
-		Find(&items).Error
+		Where("low_stock_threshold > 0 AND current_stock < low_stock_threshold").
+		Order("(low_stock_threshold - current_stock) DESC").
+		Find(&results).Error
+
 	if err != nil {
 		return nil, err
 	}
 
-	return items, nil
+	return results, nil
 }
 
 func (repo *repository) ListItem(ctx context.Context) ([]itemEntity.Item, error) {
