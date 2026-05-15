@@ -19,5 +19,5 @@ func RegisterItemRoutes(serviceCtx sctx.ServiceContext, r *gin.RouterGroup) {
 
 	items.POST("", h.CreateItem())
 
-	items.DELETE("/:id", h.DeleteItem())
+	//items.DELETE("/:id", h.DeleteItem())
 }
