@@ -20,11 +20,12 @@ func ComposeReportService(serviceCtx sctx.ServiceContext) reportHandler {
 	db := serviceCtx.MustGet(common.KeyComponentPostgres).(common.DBProvider).GetDB()
 
 	redisComp := serviceCtx.MustGet(common.KeyComponentRedis).(common.CacheProvider)
+	configComp := serviceCtx.MustGet(common.KeyComponentConfig).(common.Config)
 
 	movementRepo := movementRepository.NewMovementRepository(db)
 	reportRepo := reportRepository.NewReportRepository(db)
 
-	reportSv := service.NewReportService(reportRepo, movementRepo, redisComp)
+	reportSv := service.NewReportService(reportRepo, movementRepo, redisComp, configComp)
 
 	reportHdl := http.NewReportHandler(reportSv)
 

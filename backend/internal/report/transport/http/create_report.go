@@ -18,7 +18,7 @@ import (
 // @Success 201 {object} core.APIResponse "Report created successfully"
 // @Failure 400 {object} core.APIResponse "Invalid date format"
 // @Failure 500 {object} core.APIResponse "Internal server error"
-// @Router /v1/reports [post]
+// @Router /v1/reports/top-active-items [get]
 func (h *reportHandler) ListTopActiveItems() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dateStr := c.Query("date")
