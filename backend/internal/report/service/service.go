@@ -26,16 +26,19 @@ type reportService struct {
 	reportRepository   reportRepository
 	movementRepository movementRepository
 	cacheStore         common.CacheProvider
+	config             common.Config
 }
 
 func NewReportService(
 	reportRepository reportRepository,
 	movementRepository movementRepository,
 	cacheStore common.CacheProvider,
+	config common.Config,
 ) *reportService {
 	return &reportService{
 		reportRepository:   reportRepository,
 		movementRepository: movementRepository,
 		cacheStore:         cacheStore,
+		config:             config,
 	}
 }

@@ -257,35 +257,6 @@ paths:
       summary: Get movements by item ID
       tags:
       - Movements
-  /v1/reports:
-    post:
-      consumes:
-      - application/json
-      description: Create inventory report by date. If date is empty, current date
-        will be used.
-      parameters:
-      - description: Report date (YYYY-MM-DD)
-        in: query
-        name: date
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Report created successfully
-          schema:
-            $ref: '#/definitions/core.APIResponse'
-        "400":
-          description: Invalid date format
-          schema:
-            $ref: '#/definitions/core.APIResponse'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/core.APIResponse'
-      summary: Create daily inventory report
-      tags:
-      - Reports
   /v1/reports/daily:
     get:
       consumes:
@@ -316,6 +287,35 @@ paths:
           schema:
             $ref: '#/definitions/core.APIResponse'
       summary: Get inventory report
+      tags:
+      - Reports
+  /v1/reports/top-active-items:
+    get:
+      consumes:
+      - application/json
+      description: Create inventory report by date. If date is empty, current date
+        will be used.
+      parameters:
+      - description: Report date (YYYY-MM-DD)
+        in: query
+        name: date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Report created successfully
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "400":
+          description: Invalid date format
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+      summary: Create daily inventory report
       tags:
       - Reports
 schemes:
