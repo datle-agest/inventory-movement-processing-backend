@@ -33,8 +33,3 @@ func (dis *DailyItemSummary) Validate() error {
 	}
 	return nil
 }
-
-// Helper: Tính net stock change
-func (dis *DailyItemSummary) NetChange() int32 {
-	return dis.TotalIn - dis.TotalOut + dis.TotalAdjust
-}

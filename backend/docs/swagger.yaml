@@ -1,5 +1,12 @@
 basePath: /api
 definitions:
+  common.AppError:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+    type: object
   core.APIResponse:
     properties:
       code:
@@ -259,63 +266,32 @@ paths:
       - Movements
   /v1/reports/daily:
     get:
-      consumes:
-      - application/json
-      description: Get inventory report by date
+      description: Returns the most active inventory items for a given date.
       parameters:
-      - description: Report date (YYYY-MM-DD)
+      - description: Report date (YYYY-MM-DD). Defaults to today.
         in: query
         name: date
         type: string
+      - description: 'Number of top items to return (default: 5)'
+        in: query
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: Report retrieved successfully
+          description: OK
           schema:
             $ref: '#/definitions/core.APIResponse'
         "400":
-          description: Invalid date format
+          description: Invalid query parameter
           schema:
-            $ref: '#/definitions/core.APIResponse'
-        "404":
-          description: Report not found
-          schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/common.AppError'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/core.APIResponse'
-      summary: Get inventory report
-      tags:
-      - Reports
-  /v1/reports/top-active-items:
-    get:
-      consumes:
-      - application/json
-      description: Create inventory report by date. If date is empty, current date
-        will be used.
-      parameters:
-      - description: Report date (YYYY-MM-DD)
-        in: query
-        name: date
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Report created successfully
-          schema:
-            $ref: '#/definitions/core.APIResponse'
-        "400":
-          description: Invalid date format
-          schema:
-            $ref: '#/definitions/core.APIResponse'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/core.APIResponse'
-      summary: Create daily inventory report
+            $ref: '#/definitions/common.AppError'
+      summary: List top active items by date
       tags:
       - Reports
 schemes:

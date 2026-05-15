@@ -360,91 +360,45 @@
         },
         "/v1/reports/daily": {
             "get": {
-                "description": "Get inventory report by date",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Returns the most active inventory items for a given date.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Reports"
                 ],
-                "summary": "Get inventory report",
+                "summary": "List top active items by date",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Report date (YYYY-MM-DD)",
+                        "description": "Report date (YYYY-MM-DD). Defaults to today.",
                         "name": "date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of top items to return (default: 5)",
+                        "name": "limit",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Report retrieved successfully",
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/core.APIResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid date format",
+                        "description": "Invalid query parameter",
                         "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Report not found",
-                        "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
+                            "$ref": "#/definitions/common.AppError"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/reports/top-active-items": {
-            "get": {
-                "description": "Create inventory report by date. If date is empty, current date will be used.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Reports"
-                ],
-                "summary": "Create daily inventory report",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Report date (YYYY-MM-DD)",
-                        "name": "date",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Report created successfully",
-                        "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid date format",
-                        "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
+                            "$ref": "#/definitions/common.AppError"
                         }
                     }
                 }
@@ -452,6 +406,17 @@
         }
     },
     "definitions": {
+        "common.AppError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
         "core.APIResponse": {
             "type": "object",
             "properties": {
