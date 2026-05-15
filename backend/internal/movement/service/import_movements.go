@@ -7,8 +7,10 @@ import (
 	"inventory-movement-processing/internal/movement/entity"
 	"io"
 	"mime/multipart"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type ProcessStatus string
@@ -20,11 +22,13 @@ const (
 )
 
 type csvMovementRow struct {
-	ExternalID string              `csv:"external_id"`
-	ItemID     int32               `csv:"item_id"`
-	Type       entity.MovementType `csv:"movement_type"`
-	Quantity   int32               `csv:"quantity"`
-	Note       string              `csv:"note"`
+	RowIndex     int                 `csv:"row_index"`
+	ExternalID   string              `csv:"external_id"`
+	ItemID       int32               `csv:"item_id"`
+	Type         entity.MovementType `csv:"movement_type"`
+	Quantity     int32               `csv:"quantity"`
+	MovementTime time.Time           `csv:"movement_time"` // RFC3339 format: 2026-05-15T08:00:00Z
+	Note         string              `csv:"note"`
 }
 
 type ProcessResult struct {
@@ -61,12 +65,20 @@ func (s *service) ImportBatch(ctx context.Context, file *multipart.FileHeader) (
 		return ImportBatchResult{}, err
 	}
 
-	// run worker
-	resultCh := s.runImportWorkers(ctx, validRows)
+	// group by item_id
+	groupedRows := s.groupRowsByItem(validRows)
+
+	// run workers
+	resultCh := s.runImportWorkers(ctx, groupedRows)
 
 	totalRows := len(validRows) + len(parseFailedRows)
 
-	result := s.summarizeResults(totalRows, parseFailedRows, resultCh)
+	// summarize
+	result := s.summarizeResults(
+		totalRows,
+		parseFailedRows,
+		resultCh,
+	)
 
 	return result, nil
 }
@@ -126,12 +138,8 @@ func (s *service) parseCSV(src io.Reader) ([]csvMovementRow, []ProcessResult, er
 		}
 
 		// validate item_id
-		itemIDInt, err := strconv.Atoi(
-			row["item_id"],
-		)
-
+		itemIDInt, err := strconv.Atoi(row["item_id"])
 		if err != nil {
-
 			failedRows = append(
 				failedRows,
 				ProcessResult{
@@ -141,17 +149,12 @@ func (s *service) parseCSV(src io.Reader) ([]csvMovementRow, []ProcessResult, er
 					ErrorReason: "invalid item_id",
 				},
 			)
-
 			continue
 		}
 
 		// validate quantity
-		quantityInt, err := strconv.Atoi(
-			row["quantity"],
-		)
-
+		quantityInt, err := strconv.Atoi(row["quantity"])
 		if err != nil {
-
 			failedRows = append(
 				failedRows,
 				ProcessResult{
@@ -164,13 +167,9 @@ func (s *service) parseCSV(src io.Reader) ([]csvMovementRow, []ProcessResult, er
 			continue
 		}
 
-		movementType := entity.MovementType(
-			row["movement_type"],
-		)
-
+		movementType := entity.MovementType(row["movement_type"])
 		// validate movement type
 		if !movementType.IsValid() {
-
 			failedRows = append(
 				failedRows,
 				ProcessResult{
@@ -180,44 +179,100 @@ func (s *service) parseCSV(src io.Reader) ([]csvMovementRow, []ProcessResult, er
 					ErrorReason: "invalid movement_type",
 				},
 			)
+			continue
+		}
 
+		// validate movement time
+		movementTime, err := time.Parse(time.RFC3339, row["movement_time"])
+
+		if err != nil {
+			failedRows = append(
+				failedRows,
+				ProcessResult{
+					RowIndex:   rowIndex,
+					ExternalID: row["external_id"],
+					Status:     StatusRejected,
+					ErrorReason: "invalid movement_time " +
+						"(RFC3339 required)",
+				},
+			)
 			continue
 		}
 
 		csvRow := csvMovementRow{
-			ExternalID: row["external_id"],
-			ItemID:     int32(itemIDInt),
-			Type:       movementType,
-			Quantity:   int32(quantityInt),
-			Note:       row["note"],
+			RowIndex:     rowIndex,
+			ExternalID:   row["external_id"],
+			ItemID:       int32(itemIDInt),
+			Type:         movementType,
+			Quantity:     int32(quantityInt),
+			MovementTime: movementTime,
+			Note:         row["note"],
 		}
-
 		rows = append(rows, csvRow)
 	}
+	// sort by business event time
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i].MovementTime.Before(
+			rows[j].MovementTime,
+		)
+	})
 
 	return rows, failedRows, nil
 }
 
-func (s *service) runImportWorkers(ctx context.Context, rows []csvMovementRow) chan ProcessResult {
-	resultCh := make(chan ProcessResult, len(rows))
+// groupRowsByItem - Group rows by item_id for sequential processing per item
+func (s *service) groupRowsByItem(rows []csvMovementRow) map[int32][]csvMovementRow {
+	result := make(map[int32][]csvMovementRow)
+	for _, row := range rows {
+		result[row.ItemID] = append(result[row.ItemID], row)
+	}
+	return result
+}
 
-	for idx, row := range rows {
-		i, r := idx, row // Tránh lỗi closure
+func (s *service) runImportWorkers(ctx context.Context, grouped map[int32][]csvMovementRow) chan ProcessResult {
+	totalRows := 0
+	for _, rows := range grouped {
+		totalRows += len(rows)
+	}
+	resultCh := make(chan ProcessResult, totalRows)
+
+	// Submit one job per item group
+	// Movements of same item processed sequentially
+	// Different items processed concurrently
+	for _, itemRows := range grouped {
+
+		rows := itemRows
+
 		s.workerPool.Submit(func() {
-			movement := &entity.Movement{
-				ExternalID: r.ExternalID,
-				ItemID:     r.ItemID,
-				Type:       r.Type,
-				Quantity:   r.Quantity,
-				Note:       &r.Note,
-			}
-			status, err := s.ProcessOne(ctx, movement)
+			// sequential within same item
+			for _, r := range rows {
 
-			res := ProcessResult{RowIndex: i + 1, ExternalID: r.ExternalID, Status: status}
-			if err != nil {
-				res.ErrorReason = err.Error()
+				movement := &entity.Movement{
+					ExternalID:   r.ExternalID,
+					ItemID:       r.ItemID,
+					Type:         r.Type,
+					Quantity:     r.Quantity,
+					MovementTime: r.MovementTime,
+					Note:         &r.Note,
+				}
+
+				status, err := s.ProcessOne(
+					ctx,
+					movement,
+				)
+
+				res := ProcessResult{
+					RowIndex:   r.RowIndex,
+					ExternalID: r.ExternalID,
+					Status:     status,
+				}
+
+				if err != nil {
+					res.ErrorReason = err.Error()
+				}
+
+				resultCh <- res
 			}
-			resultCh <- res
 		})
 	}
 
@@ -229,26 +284,37 @@ func (s *service) runImportWorkers(ctx context.Context, rows []csvMovementRow) c
 	return resultCh
 }
 
-func (s *service) summarizeResults(total int,
+// summarizeResults
+func (s *service) summarizeResults(
+	total int,
 	parseFailedRows []ProcessResult,
 	resultCh chan ProcessResult,
 ) ImportBatchResult {
 
-	var success, rejected, duplicate int
-	// Khởi tạo mảng failedRows chứa sẵn các lỗi từ lúc parseCSV
-	failedRows := append([]ProcessResult{}, parseFailedRows...)
+	var (
+		success   int
+		rejected  int
+		duplicate int
+	)
 
-	// Cập nhật số lượng rejected ban đầu bằng số lượng lỗi parse
+	failedRows := append(
+		[]ProcessResult{},
+		parseFailedRows...,
+	)
+
 	rejected = len(parseFailedRows)
 
-	// Đọc tiếp kết quả từ các worker (những dòng hợp lệ đã chạy xong)
 	for r := range resultCh {
+
 		switch r.Status {
+
 		case StatusAccepted:
 			success++
+
 		case StatusRejected:
 			rejected++
 			failedRows = append(failedRows, r)
+
 		case StatusDuplicate:
 			duplicate++
 			failedRows = append(failedRows, r)

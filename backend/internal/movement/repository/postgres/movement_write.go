@@ -53,7 +53,6 @@ func (r *movementRepository) ProcessMovement(ctx context.Context, m *movementEnt
 
 	if err != nil {
 		tx.Rollback()
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return inventoryEntity.ErrItemNotFound
 		}
@@ -64,29 +63,23 @@ func (r *movementRepository) ProcessMovement(ctx context.Context, m *movementEnt
 	switch m.Type {
 
 	case movementEntity.MovementTypeOut:
-
 		// check stock
 		if item.CurrentStock < m.Quantity {
 			tx.Rollback()
 			return movementEntity.ErrInsufficientStock
 		}
-
 		item.CurrentStock -= m.Quantity
 
 	case movementEntity.MovementTypeIn:
-
 		item.CurrentStock += m.Quantity
 
 	case movementEntity.MovementTypeAdjust:
-
 		item.CurrentStock += m.Quantity
 	}
 
 	// create inventory movement
 	if err := tx.Create(m).Error; err != nil {
-
 		tx.Rollback()
-
 		// duplicate external_id
 		if strings.Contains(
 			strings.ToLower(err.Error()),
@@ -95,23 +88,21 @@ func (r *movementRepository) ProcessMovement(ctx context.Context, m *movementEnt
 
 			return movementEntity.ErrDuplicateMovement
 		}
-
 		return err
 	}
 
 	// update inventory stock
 	if err := tx.Save(&item).Error; err != nil {
-
 		tx.Rollback()
-
+		if strings.Contains(strings.ToLower(err.Error()), "chk_current_stock_non_negative") {
+			return inventoryEntity.ErrInsufficientStock
+		}
 		return err
 	}
 
 	// commit transaction
 	if err := tx.Commit().Error; err != nil {
-
 		tx.Rollback()
-
 		return err
 	}
 
