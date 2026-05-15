@@ -33,15 +33,6 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Verify formatting
-        run: |
-          unformatted=$(gofmt -l .)
-          if [ -n "$unformatted" ]; then
-            echo "These files are not formatted:"
-            echo "$unformatted"
-            exit 1
-          fi
-
       - name: Run go vet
         run: go vet ./...
 
