@@ -9,11 +9,13 @@ import (
 
 func RegisterItemRoutes(serviceCtx sctx.ServiceContext, r *gin.RouterGroup) {
 	h := composer.ComposeItemService(serviceCtx)
+	moveH := composer.ComposeMovementService(serviceCtx)
 
 	items := r.Group("/items")
 
 	items.GET("", h.ListItem())
 	items.GET("/:id", h.GetItem())
+	items.GET("/:id/movements", moveH.GetMovementsByItemID())
 
 	items.POST("", h.CreateItem())
 

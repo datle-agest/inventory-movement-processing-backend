@@ -295,7 +295,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/movements/item/{id}": {
+        "/v1/items/{id}/movements": {
             "get": {
                 "description": "Get all inventory movements for a specific item",
                 "consumes": [
@@ -305,7 +305,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Movements"
+                    "Items"
                 ],
                 "summary": "Get movements by item ID",
                 "parameters": [

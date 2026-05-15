@@ -217,7 +217,7 @@ paths:
       summary: Get item by ID
       tags:
       - Items
-  /v1/movements/item/{id}:
+  /v1/items/{id}/movements:
     get:
       consumes:
       - application/json

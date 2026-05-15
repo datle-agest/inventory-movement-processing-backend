@@ -12,7 +12,7 @@ import (
 // GetMovementsByItemID godoc
 // @Summary Get movements by item ID
 // @Description Get all inventory movements for a specific item
-// @Tags Movements
+// @Tags Items
 // @Accept json
 // @Produce json
 // @Param id path int true "Item ID"
@@ -20,7 +20,7 @@ import (
 // @Failure 400 {object} core.APIResponse "Invalid item ID"
 // @Failure 404 {object} core.APIResponse "Item not found"
 // @Failure 500 {object} core.APIResponse "Internal server error"
-// @Router /v1/movements/item/{id} [get]
+// @Router /v1/items/{id}/movements [get]
 func (h *Handler) GetMovementsByItemID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")
