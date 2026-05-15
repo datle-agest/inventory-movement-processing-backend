@@ -11,6 +11,5 @@ func RegisterMovementRoutes(serviceCtx sctx.ServiceContext, r *gin.RouterGroup) 
 	h := composer.ComposeMovementService(serviceCtx)
 
 	items := r.Group("/inventory-movements")
-	items.GET("/:id/movements", h.GetMovementsByItemID())
 	items.POST("/import", h.ImportBatch())
 }

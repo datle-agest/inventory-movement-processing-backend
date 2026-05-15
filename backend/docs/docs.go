@@ -245,57 +245,9 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "delete": {
-                "description": "Delete an inventory item by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Items"
-                ],
-                "summary": "Delete item",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Item ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Item deleted successfully",
-                        "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid item ID",
-                        "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Item not found",
-                        "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
-                        }
-                    }
-                }
             }
         },
-        "/v1/movements/item/{id}": {
+        "/v1/items/{id}/movements": {
             "get": {
                 "description": "Get all inventory movements for a specific item",
                 "consumes": [
@@ -305,7 +257,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Movements"
+                    "Items"
                 ],
                 "summary": "Get movements by item ID",
                 "parameters": [

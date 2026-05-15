@@ -3,12 +3,13 @@ package http
 import (
 	"context"
 	"inventory-movement-processing/internal/movement/entity"
+	"inventory-movement-processing/internal/movement/service"
 	"mime/multipart"
 )
 
 type movementService interface {
 	GetMovementsByItemID(ctx context.Context, itemId int) ([]*entity.Movement, error)
-	ImportBatch(ctx context.Context, file *multipart.FileHeader) (map[string]interface{}, error)
+	ImportBatch(ctx context.Context, file *multipart.FileHeader) (service.ImportBatchResult, error)
 }
 
 type Handler struct {
