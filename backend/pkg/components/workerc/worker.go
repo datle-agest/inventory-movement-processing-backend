@@ -61,6 +61,7 @@ func (wp *workerPool) Activate(sc sctx.ServiceContext) error {
 }
 
 func (wp *workerPool) Stop() error {
+	wp.jobWg.Wait()
 	close(wp.quit)
 	close(wp.jobQueue)
 	wp.wg.Wait()
