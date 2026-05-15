@@ -41,7 +41,7 @@ func (s *reportService) ListTopActiveItems(
 		}
 	}
 
-	// 2. Nếu hôm nay -> regenerate summary
+	// 2. If today -> regenerate summary
 	now := time.Now()
 
 	isToday :=
@@ -68,7 +68,7 @@ func (s *reportService) ListTopActiveItems(
 
 	// 3. Query full ranking
 	result, err := s.reportRepository.
-		ListTopActiveItemsByDate(ctx, date, 100)
+		ListTopActiveItemsByDate(ctx, date, s.config.GetReportCacheLimit())
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (s *reportService) ListTopActiveItems(
 		)
 	}
 
-	// 5. Slice theo limit
+	// 5. Slice limit
 	if limit > len(result) {
 		limit = len(result)
 	}

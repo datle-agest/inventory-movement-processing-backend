@@ -15,6 +15,7 @@ type HTTPServer interface {
 }
 
 type Config interface {
+	GetReportCacheLimit() int
 }
 
 type DBProvider interface {
