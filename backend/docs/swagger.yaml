@@ -217,7 +217,7 @@ paths:
       summary: Get item by ID
       tags:
       - Items
-  /v1/movements/item/{id}:
+  /v1/items/{id}/movements:
     get:
       consumes:
       - application/json
@@ -256,7 +256,7 @@ paths:
             $ref: '#/definitions/core.APIResponse'
       summary: Get movements by item ID
       tags:
-      - Movements
+      - Items
   /v1/reports:
     post:
       consumes:
