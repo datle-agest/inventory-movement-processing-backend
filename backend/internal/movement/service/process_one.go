@@ -36,8 +36,12 @@ func (s *service) ProcessOne(ctx context.Context, m *entity.Movement) (ProcessSt
 				common.ErrConflict("duplicate external_id")
 
 		default:
+			// TODO: Return error message thực tế thay vì generic
 			return StatusRejected,
-				common.ErrInternal("cannot process movement")
+				common.ErrInternal(err.Error())
+
+			//return StatusRejected,
+			//	common.ErrInternal("cannot process movement")
 		}
 	}
 
