@@ -4,22 +4,29 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 )
 
+// mockConfig implements Config interface for testing
+type mockConfig struct {
+	managerKey     string
+	storekeeperKey string
+}
+
+func (m *mockConfig) GetManagerAPIKey() string     { return m.managerKey }
+func (m *mockConfig) GetStorekeeperAPIKey() string { return m.storekeeperKey }
+
+func newMockConfig() *mockConfig {
+	return &mockConfig{
+		managerKey:     "manager_token_123",
+		storekeeperKey: "storekeeper_token_123",
+	}
+}
+
 func TestAuthByRole(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-
-	os.Setenv("MANAGER_API_KEY", "manager_token_123")
-	os.Setenv("STOREKEEPER_API_KEY", "storekeeper_token_123")
-
-	defer func() {
-		os.Unsetenv("MANAGER_API_KEY")
-		os.Unsetenv("STOREKEEPER_API_KEY")
-	}()
 
 	tests := []struct {
 		name              string
@@ -51,7 +58,6 @@ func TestAuthByRole(t *testing.T) {
 		},
 
 		// --- Authentication Errors (401) ---
-		// Missing header và missing Bearer prefix → cùng message vì middleware check chung 1 điều kiện
 		{
 			name:              "Error: missing Authorization header",
 			path:              "/api/v1/items",
@@ -72,7 +78,6 @@ func TestAuthByRole(t *testing.T) {
 			expectBodyKey:     "message",
 			expectBodyMessage: "Missing or Invalid token",
 		},
-		// Bearer prefix có nhưng token rỗng → token = "" không match key nào → "Invalid token"
 		{
 			name:              "Error: Bearer prefix but empty token",
 			path:              "/api/v1/items",
@@ -144,7 +149,6 @@ func TestAuthByRole(t *testing.T) {
 			expectedRole:    "manager",
 			expectRoleInCtx: true,
 		},
-		// ✅ Fix #3: Thêm case storekeeper dùng shared API
 		{
 			name:            "Success: Shared API - Storekeeper token",
 			path:            "/api/v1/items",
@@ -167,8 +171,9 @@ func TestAuthByRole(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			cfg := newMockConfig()
 			r := gin.New()
-			r.Use(AuthByRole(tt.allowedRoles...))
+			r.Use(AuthByRole(cfg, tt.allowedRoles...))
 
 			r.GET(tt.path, func(c *gin.Context) {
 				role, exists := c.Get("user_role")
@@ -205,19 +210,20 @@ func TestAuthByRole(t *testing.T) {
 			if tt.expectBodyKey != "" {
 				var body map[string]any
 				if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
-					t.Errorf("Expected JSON response body but failed to parse: %v\nBody: %s", err, w.Body.String())
-				} else {
-					val, ok := body[tt.expectBodyKey]
-					if !ok {
-						t.Errorf("Expected response body to have key %q, got keys: %v", tt.expectBodyKey, body)
-					}
-					if tt.expectBodyMessage != "" {
-						strVal, isStr := val.(string)
-						if !isStr {
-							t.Errorf("Expected body[%q] to be a string, got type %T: %v", tt.expectBodyKey, val, val)
-						} else if strVal != tt.expectBodyMessage {
-							t.Errorf("Expected body[%q] = %q, got %q", tt.expectBodyKey, tt.expectBodyMessage, strVal)
-						}
+					t.Errorf("Failed to parse response body: %v\nBody: %s", err, w.Body.String())
+					return
+				}
+				val, ok := body[tt.expectBodyKey]
+				if !ok {
+					t.Errorf("Expected key %q in response body, got: %v", tt.expectBodyKey, body)
+					return
+				}
+				if tt.expectBodyMessage != "" {
+					strVal, isStr := val.(string)
+					if !isStr {
+						t.Errorf("Expected body[%q] to be string, got %T: %v", tt.expectBodyKey, val, val)
+					} else if strVal != tt.expectBodyMessage {
+						t.Errorf("Expected body[%q] = %q, got %q", tt.expectBodyKey, tt.expectBodyMessage, strVal)
 					}
 				}
 			}
@@ -225,14 +231,12 @@ func TestAuthByRole(t *testing.T) {
 	}
 }
 
-func TestAuthByRole_EnvNotSet(t *testing.T) {
+func TestAuthByRole_EmptyKeys(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	os.Unsetenv("MANAGER_API_KEY")
-	os.Unsetenv("STOREKEEPER_API_KEY")
-
+	cfg := &mockConfig{managerKey: "", storekeeperKey: ""}
 	r := gin.New()
-	r.Use(AuthByRole("manager"))
+	r.Use(AuthByRole(cfg, "manager"))
 	r.GET("/api/v1/items", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
@@ -244,6 +248,6 @@ func TestAuthByRole_EnvNotSet(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusUnauthorized {
-		t.Errorf("Expected 401 when env vars are not set, got %d", w.Code)
+		t.Errorf("Expected 401 when config keys are empty, got %d", w.Code)
 	}
 }
