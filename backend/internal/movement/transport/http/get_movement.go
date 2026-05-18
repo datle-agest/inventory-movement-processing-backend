@@ -10,16 +10,20 @@ import (
 )
 
 // GetMovementsByItemID godoc
-// @Summary Get movements by item ID
-// @Description Get all inventory movements for a specific item
+// @Summary Retrieve inventory movement history by item ID
+// @Description Fetches paginated inventory movement records associated with a specific item.
+// @Description Supports pagination through `page` and `limit` query parameters.
+// @Description Returns movement history ordered according to repository configuration.
 // @Tags Items
 // @Accept json
 // @Produce json
-// @Param id path int true "Item ID"
-// @Success 200 {object} core.APIResponse{result=[]object} "List of movements for the item"
-// @Failure 400 {object} core.APIResponse "Invalid item ID"
+// @Param id path int true "Unique identifier of the inventory item"
+// @Param page  query int false "Page number for pagination. Must be greater than 0. Default is 1."
+// @Param limit query int false "Maximum number of movement records per page. Must be greater than 0. Default is 10."
+// @Success 200 {object} core.APIResponse "Successfully retrieved movement history"
+// @Failure 400 {object} core.APIResponse "Bad Request - Invalid item ID or pagination parameters"
 // @Failure 404 {object} core.APIResponse "Item not found"
-// @Failure 500 {object} core.APIResponse "Internal server error"
+// @Failure 500 {object} core.APIResponse "Internal Server Error - Failed to retrieve movement history"
 // @Router /v1/items/{id}/movements [get]
 func (h *Handler) GetMovementsByItemID() gin.HandlerFunc {
 	return func(c *gin.Context) {

@@ -36,6 +36,42 @@ definitions:
       updated_at:
         type: string
     type: object
+  service.ImportBatchResult:
+    properties:
+      duplicate:
+        type: integer
+      failed_rows:
+        items:
+          $ref: '#/definitions/service.ProcessResult'
+        type: array
+      rejected:
+        type: integer
+      success:
+        type: integer
+      total:
+        type: integer
+    type: object
+  service.ProcessResult:
+    properties:
+      error_reason:
+        type: string
+      external_id:
+        type: string
+      row_index:
+        type: integer
+      status:
+        $ref: '#/definitions/service.ProcessStatus'
+    type: object
+  service.ProcessStatus:
+    enum:
+    - accepted
+    - rejected
+    - duplicate
+    type: string
+    x-enum-varnames:
+    - StatusAccepted
+    - StatusRejected
+    - StatusDuplicate
 host: localhost:3000
 info:
   contact:
@@ -53,9 +89,13 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: Upload CSV file to process inventory movements in batch
+      description: |-
+        Uploads a CSV file containing stock movements (IN, OUT, ADJUST) to process in batch.
+        The engine validates the CSV format and groups rows by item ID.
+        Movements are then processed concurrently via a worker pool, ensuring non-negative stock limits and avoiding duplicate external IDs.
+        Returns a summary of the batch import execution including success/fail counts and row-level details.
       parameters:
-      - description: CSV file
+      - description: 'CSV file to import (required, max size: 5MB)'
         in: formData
         name: file
         required: true
@@ -64,61 +104,40 @@ paths:
       - application/json
       responses:
         "200":
-          description: Import result summary
+          description: Successful batch processing summary
           schema:
             allOf:
             - $ref: '#/definitions/core.APIResponse'
             - properties:
                 result:
-                  type: object
+                  $ref: '#/definitions/service.ImportBatchResult'
               type: object
         "400":
-          description: Invalid file or request
+          description: Bad Request - Missing file, empty file, invalid format, or
+            malformed CSV header
           schema:
             $ref: '#/definitions/core.APIResponse'
         "409":
-          description: Duplicate movement
+          description: Conflict - Duplicate transaction detected
           schema:
             $ref: '#/definitions/core.APIResponse'
         "500":
-          description: Internal server error
+          description: Internal Server Error - Failed to read/process file
           schema:
             $ref: '#/definitions/core.APIResponse'
-      summary: Import inventory movements from CSV
+      summary: Import inventory movements from a CSV file
       tags:
       - Movements
   /v1/items:
-    get:
-      consumes:
-      - application/json
-      description: Get list of all inventory items
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of items
-          schema:
-            allOf:
-            - $ref: '#/definitions/core.APIResponse'
-            - properties:
-                result:
-                  items:
-                    $ref: '#/definitions/entity.Item'
-                  type: array
-              type: object
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/core.APIResponse'
-      summary: List all items
-      tags:
-      - Items
     post:
       consumes:
       - application/json
-      description: Create a new inventory item
+      description: |-
+        Registers a new product SKU in the warehouse.
+        Ensures SKU is unique and initial stock levels are non-negative.
       parameters:
-      - description: Item data
+      - description: Product registration details including SKU, name, initial stock,
+          and safety threshold.
         in: body
         name: item
         required: true
@@ -128,7 +147,7 @@ paths:
       - application/json
       responses:
         "201":
-          description: Item created successfully
+          description: Product registered successfully
           schema:
             allOf:
             - $ref: '#/definitions/core.APIResponse'
@@ -137,23 +156,29 @@ paths:
                   $ref: '#/definitions/entity.Item'
               type: object
         "400":
-          description: Bad request
+          description: Bad Request - Invalid input data, missing required fields,
+            or negative values
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "409":
+          description: Conflict - Duplicate SKU detected
           schema:
             $ref: '#/definitions/core.APIResponse'
         "500":
-          description: Internal server error
+          description: Internal Server Error - Database write failure
           schema:
             $ref: '#/definitions/core.APIResponse'
-      summary: Create new item
+      summary: Register a new inventory item
       tags:
       - Items
   /v1/items/{id}:
     get:
       consumes:
       - application/json
-      description: Get a single inventory item by ID
+      description: Fetches details of a single inventory item, including current stock
+        and safety threshold, using its unique ID.
       parameters:
-      - description: Item ID
+      - description: Unique database ID of the inventory item
         in: path
         name: id
         required: true
@@ -162,7 +187,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Item details
+          description: Successfully retrieved item details
           schema:
             allOf:
             - $ref: '#/definitions/core.APIResponse'
@@ -171,47 +196,53 @@ paths:
                   $ref: '#/definitions/entity.Item'
               type: object
         "400":
-          description: Invalid item ID
+          description: Bad Request - Invalid database ID format
           schema:
             $ref: '#/definitions/core.APIResponse'
         "404":
-          description: Item not found
+          description: Not Found - Item with the specified ID does not exist
           schema:
             $ref: '#/definitions/core.APIResponse'
         "500":
-          description: Internal server error
+          description: Internal Server Error - Database read failure
           schema:
             $ref: '#/definitions/core.APIResponse'
-      summary: Get item by ID
+      summary: Retrieve an inventory item by ID
       tags:
       - Items
   /v1/items/{id}/movements:
     get:
       consumes:
       - application/json
-      description: Get all inventory movements for a specific item
+      description: |-
+        Fetches paginated inventory movement records associated with a specific item.
+        Supports pagination through `page` and `limit` query parameters.
+        Returns movement history ordered according to repository configuration.
       parameters:
-      - description: Item ID
+      - description: Unique identifier of the inventory item
         in: path
         name: id
         required: true
+        type: integer
+      - description: Page number for pagination. Must be greater than 0. Default is
+          1.
+        in: query
+        name: page
+        type: integer
+      - description: Maximum number of movement records per page. Must be greater
+          than 0. Default is 10.
+        in: query
+        name: limit
         type: integer
       produces:
       - application/json
       responses:
         "200":
-          description: List of movements for the item
+          description: Successfully retrieved movement history
           schema:
-            allOf:
-            - $ref: '#/definitions/core.APIResponse'
-            - properties:
-                result:
-                  items:
-                    type: object
-                  type: array
-              type: object
+            $ref: '#/definitions/core.APIResponse'
         "400":
-          description: Invalid item ID
+          description: Bad Request - Invalid item ID or pagination parameters
           schema:
             $ref: '#/definitions/core.APIResponse'
         "404":
@@ -219,10 +250,10 @@ paths:
           schema:
             $ref: '#/definitions/core.APIResponse'
         "500":
-          description: Internal server error
+          description: Internal Server Error - Failed to retrieve movement history
           schema:
             $ref: '#/definitions/core.APIResponse'
-      summary: Get movements by item ID
+      summary: Retrieve inventory movement history by item ID
       tags:
       - Items
   /v1/reports/daily:

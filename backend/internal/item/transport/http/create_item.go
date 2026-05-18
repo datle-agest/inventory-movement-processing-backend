@@ -9,15 +9,17 @@ import (
 )
 
 // CreateItem godoc
-// @Summary Create new item
-// @Description Create a new inventory item
+// @Summary Register a new inventory item
+// @Description Registers a new product SKU in the warehouse.
+// @Description Ensures SKU is unique and initial stock levels are non-negative.
 // @Tags Items
 // @Accept json
 // @Produce json
-// @Param item body entity.Item true "Item data"
-// @Success 201 {object} core.APIResponse{result=entity.Item} "Item created successfully"
-// @Failure 400 {object} core.APIResponse "Bad request"
-// @Failure 500 {object} core.APIResponse "Internal server error"
+// @Param item body entity.Item true "Product registration details including SKU, name, initial stock, and safety threshold."
+// @Success 201 {object} core.APIResponse{result=entity.Item} "Product registered successfully"
+// @Failure 400 {object} core.APIResponse "Bad Request - Invalid input data, missing required fields, or negative values"
+// @Failure 409 {object} core.APIResponse "Conflict - Duplicate SKU detected"
+// @Failure 500 {object} core.APIResponse "Internal Server Error - Database write failure"
 // @Router /v1/items [post]
 func (hdl handler) CreateItem() gin.HandlerFunc {
 

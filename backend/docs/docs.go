@@ -25,7 +25,7 @@ const docTemplate = `{
     "paths": {
         "/v1/inventory-movements/import": {
             "post": {
-                "description": "Upload CSV file to process inventory movements in batch",
+                "description": "Uploads a CSV file containing stock movements (IN, OUT, ADJUST) to process in batch.\nThe engine validates the CSV format and groups rows by item ID.\nMovements are then processed concurrently via a worker pool, ensuring non-negative stock limits and avoiding duplicate external IDs.\nReturns a summary of the batch import execution including success/fail counts and row-level details.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -35,11 +35,11 @@ const docTemplate = `{
                 "tags": [
                     "Movements"
                 ],
-                "summary": "Import inventory movements from CSV",
+                "summary": "Import inventory movements from a CSV file",
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "CSV file",
+                        "description": "CSV file to import (required, max size: 5MB)",
                         "name": "file",
                         "in": "formData",
                         "required": true
@@ -47,7 +47,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Import result summary",
+                        "description": "Successful batch processing summary",
                         "schema": {
                             "allOf": [
                                 {
@@ -57,7 +57,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "result": {
-                                            "type": "object"
+                                            "$ref": "#/definitions/service.ImportBatchResult"
                                         }
                                     }
                                 }
@@ -65,19 +65,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid file or request",
+                        "description": "Bad Request - Missing file, empty file, invalid format, or malformed CSV header",
                         "schema": {
                             "$ref": "#/definitions/core.APIResponse"
                         }
                     },
                     "409": {
-                        "description": "Duplicate movement",
+                        "description": "Conflict - Duplicate transaction detected",
                         "schema": {
                             "$ref": "#/definitions/core.APIResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal Server Error - Failed to read/process file",
                         "schema": {
                             "$ref": "#/definitions/core.APIResponse"
                         }
@@ -86,50 +86,8 @@ const docTemplate = `{
             }
         },
         "/v1/items": {
-            "get": {
-                "description": "Get list of all inventory items",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Items"
-                ],
-                "summary": "List all items",
-                "responses": {
-                    "200": {
-                        "description": "List of items",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/core.APIResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "result": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/entity.Item"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/core.APIResponse"
-                        }
-                    }
-                }
-            },
             "post": {
-                "description": "Create a new inventory item",
+                "description": "Registers a new product SKU in the warehouse.\nEnsures SKU is unique and initial stock levels are non-negative.",
                 "consumes": [
                     "application/json"
                 ],
@@ -139,10 +97,10 @@ const docTemplate = `{
                 "tags": [
                     "Items"
                 ],
-                "summary": "Create new item",
+                "summary": "Register a new inventory item",
                 "parameters": [
                     {
-                        "description": "Item data",
+                        "description": "Product registration details including SKU, name, initial stock, and safety threshold.",
                         "name": "item",
                         "in": "body",
                         "required": true,
@@ -153,7 +111,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Item created successfully",
+                        "description": "Product registered successfully",
                         "schema": {
                             "allOf": [
                                 {
@@ -171,13 +129,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad request",
+                        "description": "Bad Request - Invalid input data, missing required fields, or negative values",
+                        "schema": {
+                            "$ref": "#/definitions/core.APIResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict - Duplicate SKU detected",
                         "schema": {
                             "$ref": "#/definitions/core.APIResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal Server Error - Database write failure",
                         "schema": {
                             "$ref": "#/definitions/core.APIResponse"
                         }
@@ -187,7 +151,7 @@ const docTemplate = `{
         },
         "/v1/items/{id}": {
             "get": {
-                "description": "Get a single inventory item by ID",
+                "description": "Fetches details of a single inventory item, including current stock and safety threshold, using its unique ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -197,11 +161,11 @@ const docTemplate = `{
                 "tags": [
                     "Items"
                 ],
-                "summary": "Get item by ID",
+                "summary": "Retrieve an inventory item by ID",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Item ID",
+                        "description": "Unique database ID of the inventory item",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -209,7 +173,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Item details",
+                        "description": "Successfully retrieved item details",
                         "schema": {
                             "allOf": [
                                 {
@@ -227,19 +191,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid item ID",
+                        "description": "Bad Request - Invalid database ID format",
                         "schema": {
                             "$ref": "#/definitions/core.APIResponse"
                         }
                     },
                     "404": {
-                        "description": "Item not found",
+                        "description": "Not Found - Item with the specified ID does not exist",
                         "schema": {
                             "$ref": "#/definitions/core.APIResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal Server Error - Database read failure",
                         "schema": {
                             "$ref": "#/definitions/core.APIResponse"
                         }
@@ -249,7 +213,7 @@ const docTemplate = `{
         },
         "/v1/items/{id}/movements": {
             "get": {
-                "description": "Get all inventory movements for a specific item",
+                "description": "Fetches paginated inventory movement records associated with a specific item.\nSupports pagination through ` + "`" + `page` + "`" + ` and ` + "`" + `limit` + "`" + ` query parameters.\nReturns movement history ordered according to repository configuration.",
                 "consumes": [
                     "application/json"
                 ],
@@ -259,40 +223,37 @@ const docTemplate = `{
                 "tags": [
                     "Items"
                 ],
-                "summary": "Get movements by item ID",
+                "summary": "Retrieve inventory movement history by item ID",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Item ID",
+                        "description": "Unique identifier of the inventory item",
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number for pagination. Must be greater than 0. Default is 1.",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum number of movement records per page. Must be greater than 0. Default is 10.",
+                        "name": "limit",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of movements for the item",
+                        "description": "Successfully retrieved movement history",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/core.APIResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "result": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/core.APIResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid item ID",
+                        "description": "Bad Request - Invalid item ID or pagination parameters",
                         "schema": {
                             "$ref": "#/definitions/core.APIResponse"
                         }
@@ -304,7 +265,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal Server Error - Failed to retrieve movement history",
                         "schema": {
                             "$ref": "#/definitions/core.APIResponse"
                         }
@@ -414,6 +375,59 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "service.ImportBatchResult": {
+            "type": "object",
+            "properties": {
+                "duplicate": {
+                    "type": "integer"
+                },
+                "failed_rows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/service.ProcessResult"
+                    }
+                },
+                "rejected": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "service.ProcessResult": {
+            "type": "object",
+            "properties": {
+                "error_reason": {
+                    "type": "string"
+                },
+                "external_id": {
+                    "type": "string"
+                },
+                "row_index": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/service.ProcessStatus"
+                }
+            }
+        },
+        "service.ProcessStatus": {
+            "type": "string",
+            "enum": [
+                "accepted",
+                "rejected",
+                "duplicate"
+            ],
+            "x-enum-varnames": [
+                "StatusAccepted",
+                "StatusRejected",
+                "StatusDuplicate"
+            ]
         }
     }
 }`

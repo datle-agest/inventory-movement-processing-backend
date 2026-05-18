@@ -10,16 +10,16 @@ import (
 )
 
 // GetItem godoc
-// @Summary Get item by ID
-// @Description Get a single inventory item by ID
+// @Summary Retrieve an inventory item by ID
+// @Description Fetches details of a single inventory item, including current stock and safety threshold, using its unique ID.
 // @Tags Items
 // @Accept json
 // @Produce json
-// @Param id path int true "Item ID"
-// @Success 200 {object} core.APIResponse{result=entity.Item} "Item details"
-// @Failure 400 {object} core.APIResponse "Invalid item ID"
-// @Failure 404 {object} core.APIResponse "Item not found"
-// @Failure 500 {object} core.APIResponse "Internal server error"
+// @Param id path int true "Unique database ID of the inventory item"
+// @Success 200 {object} core.APIResponse{result=entity.Item} "Successfully retrieved item details"
+// @Failure 400 {object} core.APIResponse "Bad Request - Invalid database ID format"
+// @Failure 404 {object} core.APIResponse "Not Found - Item with the specified ID does not exist"
+// @Failure 500 {object} core.APIResponse "Internal Server Error - Database read failure"
 // @Router /v1/items/{id} [get]
 func (hdl handler) GetItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
