@@ -1,0 +1,209 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"testing"
+	"time"
+
+	"inventory-movement-processing/common"
+	itemEntity "inventory-movement-processing/internal/item/entity"
+	movementEntity "inventory-movement-processing/internal/movement/entity"
+)
+
+func TestProcessOne_InvalidInput(t *testing.T) {
+	// ItemID = 0 is invalid
+	m := &movementEntity.Movement{
+		ExternalID:   "EXT-001",
+		ItemID:       0,
+		Type:         movementEntity.MovementTypeIn,
+		Quantity:     10,
+		MovementTime: time.Now(),
+	}
+
+	svc := newMovementService(nil, nil)
+	status, err := svc.ProcessOne(context.Background(), m)
+
+	if status != StatusRejected {
+		t.Errorf("expected status %s, got %s", StatusRejected, status)
+	}
+
+	var appErr *common.AppError
+	if !errors.As(err, &appErr) {
+		t.Fatalf("expected common.AppError, got %T", err)
+	}
+	if appErr.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected HTTP 400, got %d", appErr.StatusCode)
+	}
+}
+
+func TestProcessOne_Success(t *testing.T) {
+	m := &movementEntity.Movement{
+		ExternalID:   "EXT-001",
+		ItemID:       1,
+		Type:         movementEntity.MovementTypeIn,
+		Quantity:     10,
+		MovementTime: time.Now(),
+	}
+
+	var processCalled bool
+	mr := &mockMovementRepo{
+		processMovementFn: func(ctx context.Context, gotM *movementEntity.Movement) error {
+			processCalled = true
+			if gotM.ExternalID != m.ExternalID {
+				t.Errorf("expected external ID %s, got %s", m.ExternalID, gotM.ExternalID)
+			}
+			return nil
+		},
+	}
+
+	svc := newMovementService(mr, nil)
+	status, err := svc.ProcessOne(context.Background(), m)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if status != StatusAccepted {
+		t.Errorf("expected status %s, got %s", StatusAccepted, status)
+	}
+	if !processCalled {
+		t.Error("expected ProcessMovement to be called")
+	}
+}
+
+func TestProcessOne_ItemNotFound(t *testing.T) {
+	m := &movementEntity.Movement{
+		ExternalID:   "EXT-001",
+		ItemID:       1,
+		Type:         movementEntity.MovementTypeIn,
+		Quantity:     10,
+		MovementTime: time.Now(),
+	}
+
+	mr := &mockMovementRepo{
+		processMovementFn: func(ctx context.Context, gotM *movementEntity.Movement) error {
+			return itemEntity.ErrItemNotFound
+		},
+	}
+
+	svc := newMovementService(mr, nil)
+	status, err := svc.ProcessOne(context.Background(), m)
+
+	if status != StatusRejected {
+		t.Errorf("expected status %s, got %s", StatusRejected, status)
+	}
+
+	var appErr *common.AppError
+	if !errors.As(err, &appErr) {
+		t.Fatalf("expected common.AppError, got %T", err)
+	}
+	if appErr.StatusCode != http.StatusNotFound {
+		t.Errorf("expected HTTP 404, got %d", appErr.StatusCode)
+	}
+	if appErr.Message != "inventory item not found" {
+		t.Errorf("expected error message 'inventory item not found', got '%s'", appErr.Message)
+	}
+}
+
+func TestProcessOne_InsufficientStock(t *testing.T) {
+	m := &movementEntity.Movement{
+		ExternalID:   "EXT-001",
+		ItemID:       1,
+		Type:         movementEntity.MovementTypeOut,
+		Quantity:     10,
+		MovementTime: time.Now(),
+	}
+
+	mr := &mockMovementRepo{
+		processMovementFn: func(ctx context.Context, gotM *movementEntity.Movement) error {
+			return itemEntity.ErrInsufficientStock
+		},
+	}
+
+	svc := newMovementService(mr, nil)
+	status, err := svc.ProcessOne(context.Background(), m)
+
+	if status != StatusRejected {
+		t.Errorf("expected status %s, got %s", StatusRejected, status)
+	}
+
+	var appErr *common.AppError
+	if !errors.As(err, &appErr) {
+		t.Fatalf("expected common.AppError, got %T", err)
+	}
+	if appErr.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected HTTP 400, got %d", appErr.StatusCode)
+	}
+	if appErr.Message != "insufficient stock" {
+		t.Errorf("expected error message 'insufficient stock', got '%s'", appErr.Message)
+	}
+}
+
+func TestProcessOne_DuplicateMovement(t *testing.T) {
+	m := &movementEntity.Movement{
+		ExternalID:   "EXT-001",
+		ItemID:       1,
+		Type:         movementEntity.MovementTypeIn,
+		Quantity:     10,
+		MovementTime: time.Now(),
+	}
+
+	mr := &mockMovementRepo{
+		processMovementFn: func(ctx context.Context, gotM *movementEntity.Movement) error {
+			return itemEntity.ErrDuplicateMovement
+		},
+	}
+
+	svc := newMovementService(mr, nil)
+	status, err := svc.ProcessOne(context.Background(), m)
+
+	if status != StatusDuplicate {
+		t.Errorf("expected status %s, got %s", StatusDuplicate, status)
+	}
+
+	var appErr *common.AppError
+	if !errors.As(err, &appErr) {
+		t.Fatalf("expected common.AppError, got %T", err)
+	}
+	if appErr.StatusCode != http.StatusConflict {
+		t.Errorf("expected HTTP 409, got %d", appErr.StatusCode)
+	}
+	if appErr.Message != "duplicate external_id" {
+		t.Errorf("expected error message 'duplicate external_id', got '%s'", appErr.Message)
+	}
+}
+
+func TestProcessOne_InternalError(t *testing.T) {
+	m := &movementEntity.Movement{
+		ExternalID:   "EXT-001",
+		ItemID:       1,
+		Type:         movementEntity.MovementTypeIn,
+		Quantity:     10,
+		MovementTime: time.Now(),
+	}
+
+	mr := &mockMovementRepo{
+		processMovementFn: func(ctx context.Context, gotM *movementEntity.Movement) error {
+			return errors.New("db connection failure")
+		},
+	}
+
+	svc := newMovementService(mr, nil)
+	status, err := svc.ProcessOne(context.Background(), m)
+
+	if status != StatusRejected {
+		t.Errorf("expected status %s, got %s", StatusRejected, status)
+	}
+
+	var appErr *common.AppError
+	if !errors.As(err, &appErr) {
+		t.Fatalf("expected common.AppError, got %T", err)
+	}
+	if appErr.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected HTTP 500, got %d", appErr.StatusCode)
+	}
+	if appErr.Message != "cannot process movement" {
+		t.Errorf("expected error message 'cannot process movement', got '%s'", appErr.Message)
+	}
+}
