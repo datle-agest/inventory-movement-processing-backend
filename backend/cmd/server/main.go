@@ -58,7 +58,8 @@ func newServiceContext() sctx.ServiceContext {
 
 func setupRouter(serviceCtx sctx.ServiceContext, router *gin.Engine) {
 	router.Use(gin.Logger(), gin.Recovery(), middleware.Recovery(serviceCtx))
-	// router.Use(middleware.AuthByRole("manager", "storekeeper"))
+	// cfg := serviceCtx.MustGet(common.KeyComponentConfig).(middleware.Config)
+	// router.Use(middleware.AuthByRole(cfg))
 	// Swagger endpoint
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
