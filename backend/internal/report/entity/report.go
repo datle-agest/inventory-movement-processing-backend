@@ -1,4 +1,8 @@
 package entity
 
-type Report struct {
+import "time"
+
+type CachedReport struct {
+	Items       []*DailyItemSummary `json:"items"`
+	GeneratedAt time.Time           `json:"generated_at"`
 }

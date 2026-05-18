@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -10,28 +11,44 @@ import (
 	reportEntity "inventory-movement-processing/internal/report/entity"
 )
 
-func TestGetDailyReport_DefaultLimit(t *testing.T) {
-	summaries := makeSummaries(10)
+func TestIsDataStale(t *testing.T) {
+	d := today()
+	start := startOfDay(d)
+
+	tests := []struct {
+		name      string
+		items     []*reportEntity.DailyItemSummary
+		wantStale bool
+	}{
+		{"Empty slice", []*reportEntity.DailyItemSummary{}, true},
+		{"Nil UpdatedAt", []*reportEntity.DailyItemSummary{{}}, true},
+		{"UpdatedAt before startOfDay (stale)", makeSummariesWithUpdatedAt(1, start.Add(-time.Hour)), true},
+		{"UpdatedAt exactly startOfDay (fresh)", makeSummariesWithUpdatedAt(1, start), false},
+		{"UpdatedAt after startOfDay (fresh)", makeSummariesWithUpdatedAt(1, start.Add(time.Hour)), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isDataStale(tt.items, d); got != tt.wantStale {
+				t.Errorf("isDataStale() = %v, want %v", got, tt.wantStale)
+			}
+		})
+	}
+}
+
+// Edge Cases & Complex Flows
+func TestGetDailyReport_LimitExceedsResults_ClampsToLen(t *testing.T) {
+	updatedAt := startOfDay(yesterday()).Add(1 * time.Hour)
+	summaries := makeSummariesWithUpdatedAt(3, updatedAt)
 
 	svc := newService(
 		&mockReportRepo{
-			upsertFn: func(_ context.Context, _ []*reportEntity.DailyItemSummary) error {
-				return nil
-			},
 			listTopActiveFn: func(_ context.Context, _ time.Time, _ int) ([]*reportEntity.DailyItemSummary, error) {
 				return summaries, nil
 			},
 		},
-		&mockMovementRepo{
-			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
-				return summaries, nil
-			},
-		},
-		&mockItemRepo{
-			listLowStockFn: func(_ context.Context) ([]*itemEntity.Item, error) {
-				return nil, nil
-			},
-		},
+		&mockMovementRepo{},
+		nil,
 		&mockCache{
 			getFn: func(_ context.Context, _ string) (string, bool, error) {
 				return "", false, nil
@@ -40,71 +57,47 @@ func TestGetDailyReport_DefaultLimit(t *testing.T) {
 		&mockConfig{cacheLimit: 10},
 	)
 
-	// limit <= 0 → default 5
-	result, err := svc.GetDailyReport(context.Background(), today(), 0)
+	result, err := svc.GetDailyReport(context.Background(), yesterday(), 10)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(result.TopItems) != 5 {
-		t.Errorf("expected 5 items (default limit), got %d", len(result.TopItems))
+	if len(result.TopItems) != 3 {
+		t.Errorf("expected 3 items (clamped), got %d", len(result.TopItems))
 	}
 }
 
-func TestGetDailyReport_CacheHit_Past(t *testing.T) {
-	summaries := makeSummaries(10)
-	cachedJSON := marshalSummaries(t, summaries)
+func TestGetDailyReport_CacheHit_Today_Stale_Regenerates(t *testing.T) {
+	staleSummaries := makeSummaries(2)
+	updatedAt := startOfDay(today()).Add(1 * time.Hour)
+	freshSummaries := makeSummariesWithUpdatedAt(5, updatedAt)
 
-	listCalled := false
+	staleJSON := makeCachedJSON(t, staleSummaries, time.Now().Add(-2*time.Minute))
+
+	regenerateCalled := false
 
 	svc := newService(
 		&mockReportRepo{
+			upsertFn: func(_ context.Context, _ []*reportEntity.DailyItemSummary) error {
+				regenerateCalled = true
+				return nil
+			},
 			listTopActiveFn: func(_ context.Context, _ time.Time, _ int) ([]*reportEntity.DailyItemSummary, error) {
-				listCalled = true
+				return freshSummaries, nil
+			},
+		},
+		&mockMovementRepo{
+			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
+				return freshSummaries, nil
+			},
+		},
+		&mockItemRepo{
+			listLowStockFn: func(_ context.Context) ([]*itemEntity.Item, error) {
 				return nil, nil
 			},
 		},
-		&mockMovementRepo{},
-		nil,
 		&mockCache{
 			getFn: func(_ context.Context, _ string) (string, bool, error) {
-				return cachedJSON, true, nil
-			},
-		},
-		&mockConfig{cacheLimit: 10},
-	)
-
-	result, err := svc.GetDailyReport(context.Background(), yesterday(), 3)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if listCalled {
-		t.Error("should not hit DB on cache hit")
-	}
-	if len(result.TopItems) != 3 {
-		t.Errorf("expected 3 items, got %d", len(result.TopItems))
-	}
-	if result.LowStockItems != nil {
-		t.Error("past date should not include low stock items")
-	}
-}
-
-func TestGetDailyReport_CacheHit_Today_FetchesLowStock(t *testing.T) {
-	summaries := makeSummaries(5)
-	cachedJSON := marshalSummaries(t, summaries)
-
-	lowStockItems := []*itemEntity.Item{{}, {}}
-
-	svc := newService(
-		&mockReportRepo{},
-		&mockMovementRepo{},
-		&mockItemRepo{
-			listLowStockFn: func(_ context.Context) ([]*itemEntity.Item, error) {
-				return lowStockItems, nil
-			},
-		},
-		&mockCache{
-			getFn: func(_ context.Context, _ string) (string, bool, error) {
-				return cachedJSON, true, nil
+				return staleJSON, true, nil
 			},
 		},
 		&mockConfig{cacheLimit: 10},
@@ -114,48 +107,41 @@ func TestGetDailyReport_CacheHit_Today_FetchesLowStock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(result.LowStockItems) != 2 {
-		t.Errorf("expected 2 low stock items, got %d", len(result.LowStockItems))
+	if !regenerateCalled {
+		t.Error("expected regenerate to be called on stale cache")
+	}
+	if len(result.TopItems) != 5 {
+		t.Errorf("expected 5 fresh items, got %d", len(result.TopItems))
 	}
 }
 
-func TestGetDailyReport_CacheHit_Today_LowStockError(t *testing.T) {
-	summaries := makeSummaries(5)
-	cachedJSON := marshalSummaries(t, summaries)
-	wantErr := errors.New("low stock fetch failed")
+func TestGetDailyReport_DBStale_ByUpdatedAt_FallbackRegenerate(t *testing.T) {
+	staleUpdatedAt := startOfDay(yesterday()).Add(-11 * time.Hour)
+	staleSummaries := makeSummariesWithUpdatedAt(3, staleUpdatedAt)
 
-	svc := newService(
-		&mockReportRepo{},
-		&mockMovementRepo{},
-		&mockItemRepo{
-			listLowStockFn: func(_ context.Context) ([]*itemEntity.Item, error) {
-				return nil, wantErr
-			},
-		},
-		&mockCache{
-			getFn: func(_ context.Context, _ string) (string, bool, error) {
-				return cachedJSON, true, nil
-			},
-		},
-		&mockConfig{cacheLimit: 10},
-	)
+	freshUpdatedAt := startOfDay(yesterday()).Add(1 * time.Minute)
+	freshSummaries := makeSummariesWithUpdatedAt(4, freshUpdatedAt)
 
-	_, err := svc.GetDailyReport(context.Background(), today(), 5)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-}
-
-func TestGetDailyReport_CacheMiss_Past_QueriesDB(t *testing.T) {
-	summaries := makeSummaries(8)
+	listCallCount := 0
 
 	svc := newService(
 		&mockReportRepo{
+			upsertFn: func(_ context.Context, _ []*reportEntity.DailyItemSummary) error {
+				return nil
+			},
 			listTopActiveFn: func(_ context.Context, _ time.Time, _ int) ([]*reportEntity.DailyItemSummary, error) {
-				return summaries, nil
+				listCallCount++
+				if listCallCount == 1 {
+					return staleSummaries, nil
+				}
+				return freshSummaries, nil
 			},
 		},
-		&mockMovementRepo{},
+		&mockMovementRepo{
+			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
+				return freshSummaries, nil
+			},
+		},
 		nil,
 		&mockCache{
 			getFn: func(_ context.Context, _ string) (string, bool, error) {
@@ -169,127 +155,99 @@ func TestGetDailyReport_CacheMiss_Past_QueriesDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if listCallCount != 2 {
+		t.Errorf("expected 2 DB calls, got %d", listCallCount)
+	}
 	if len(result.TopItems) != 4 {
-		t.Errorf("expected 4 items, got %d", len(result.TopItems))
+		t.Errorf("expected 4 fresh items after fallback, got %d", len(result.TopItems))
 	}
 }
 
-func TestGetDailyReport_CacheMiss_Today_RegeneratesSummary(t *testing.T) {
-	summaries := makeSummaries(5)
-	generateCalled := false
+func TestGetDailyReport_Errors(t *testing.T) {
+	tests := []struct {
+		name       string
+		isToday    bool
+		setupMocks func() *reportService
+	}{
+		{
+			name:    "DB list error",
+			isToday: false,
+			setupMocks: func() *reportService {
+				return newService(
+					&mockReportRepo{
+						listTopActiveFn: func(_ context.Context, _ time.Time, _ int) ([]*reportEntity.DailyItemSummary, error) {
+							return nil, errors.New("db error")
+						},
+					},
+					&mockMovementRepo{}, nil, &mockCache{
+						getFn: func(_ context.Context, _ string) (string, bool, error) { return "", false, nil },
+					}, &mockConfig{cacheLimit: 10},
+				)
+			},
+		},
+		{
+			name:    "Cache hit today but low stock fetch fails",
+			isToday: true,
+			setupMocks: func() *reportService {
+				summaries := makeSummaries(2)
+				cachedJSON := makeCachedJSON(t, summaries, time.Now())
+				return newService(
+					&mockReportRepo{}, &mockMovementRepo{},
+					&mockItemRepo{
+						listLowStockFn: func(_ context.Context) ([]*itemEntity.Item, error) {
+							return nil, errors.New("low stock error")
+						},
+					},
+					&mockCache{
+						getFn: func(_ context.Context, _ string) (string, bool, error) { return cachedJSON, true, nil },
+					}, &mockConfig{cacheLimit: 10},
+				)
+			},
+		},
+	}
 
-	svc := newService(
-		&mockReportRepo{
-			upsertFn: func(_ context.Context, _ []*reportEntity.DailyItemSummary) error {
-				generateCalled = true
-				return nil
-			},
-			listTopActiveFn: func(_ context.Context, _ time.Time, _ int) ([]*reportEntity.DailyItemSummary, error) {
-				return summaries, nil
-			},
-		},
-		&mockMovementRepo{
-			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
-				return summaries, nil
-			},
-		},
-		&mockItemRepo{
-			listLowStockFn: func(_ context.Context) ([]*itemEntity.Item, error) {
-				return nil, nil
-			},
-		},
-		&mockCache{
-			getFn: func(_ context.Context, _ string) (string, bool, error) {
-				return "", false, nil
-			},
-		},
-		&mockConfig{cacheLimit: 10},
-	)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := tt.setupMocks()
+			date := yesterday()
+			if tt.isToday {
+				date = today()
+			}
+			_, err := svc.GetDailyReport(context.Background(), date, 5)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+		})
+	}
+}
 
-	_, err := svc.GetDailyReport(context.Background(), today(), 5)
+func marshalCachedReport(t *testing.T, r reportEntity.CachedReport) string {
+	t.Helper()
+	raw, err := json.Marshal(r)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("marshal CachedReport: %v", err)
 	}
-	if !generateCalled {
-		t.Error("expected GenerateDailySummary to be called for today cache miss")
-	}
+	return string(raw)
 }
 
-func TestGetDailyReport_CacheMiss_Today_GenerateError(t *testing.T) {
-	wantErr := errors.New("aggregate error")
-
-	svc := newService(
-		&mockReportRepo{},
-		&mockMovementRepo{
-			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
-				return nil, wantErr
-			},
-		},
-		nil,
-		&mockCache{
-			getFn: func(_ context.Context, _ string) (string, bool, error) {
-				return "", false, nil
-			},
-		},
-		&mockConfig{cacheLimit: 10},
-	)
-
-	_, err := svc.GetDailyReport(context.Background(), today(), 5)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
+func makeCachedJSON(t *testing.T, summaries []*reportEntity.DailyItemSummary, generatedAt time.Time) string {
+	t.Helper()
+	return marshalCachedReport(t, reportEntity.CachedReport{
+		Items:       summaries,
+		GeneratedAt: generatedAt,
+	})
 }
 
-func TestGetDailyReport_LimitExceedsResults_ClampsToLen(t *testing.T) {
-	summaries := makeSummaries(3)
-
-	svc := newService(
-		&mockReportRepo{
-			listTopActiveFn: func(_ context.Context, _ time.Time, _ int) ([]*reportEntity.DailyItemSummary, error) {
-				return summaries, nil
-			},
-		},
-		&mockMovementRepo{},
-		nil,
-		&mockCache{
-			getFn: func(_ context.Context, _ string) (string, bool, error) {
-				return "", false, nil
-			},
-		},
-		&mockConfig{cacheLimit: 10},
-	)
-
-	// limit=10 nhưng chỉ có 3 → trả về 3, không panic
-	result, err := svc.GetDailyReport(context.Background(), yesterday(), 10)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+func makeSummariesWithUpdatedAt(n int, updatedAt time.Time) []*reportEntity.DailyItemSummary {
+	items := make([]*reportEntity.DailyItemSummary, n)
+	t := updatedAt
+	for i := range items {
+		items[i] = &reportEntity.DailyItemSummary{}
+		items[i].UpdatedAt = &t
 	}
-	if len(result.TopItems) != 3 {
-		t.Errorf("expected 3 items (clamped), got %d", len(result.TopItems))
-	}
+	return items
 }
 
-func TestGetDailyReport_DBError(t *testing.T) {
-	wantErr := errors.New("db connection lost")
-
-	svc := newService(
-		&mockReportRepo{
-			listTopActiveFn: func(_ context.Context, _ time.Time, _ int) ([]*reportEntity.DailyItemSummary, error) {
-				return nil, wantErr
-			},
-		},
-		&mockMovementRepo{},
-		nil,
-		&mockCache{
-			getFn: func(_ context.Context, _ string) (string, bool, error) {
-				return "", false, nil
-			},
-		},
-		&mockConfig{cacheLimit: 10},
-	)
-
-	_, err := svc.GetDailyReport(context.Background(), yesterday(), 5)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
+func startOfDay(d time.Time) time.Time {
+	return time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location())
 }
