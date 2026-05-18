@@ -43,7 +43,7 @@ func Recovery(serviceCtx sctx.ServiceContext) gin.HandlerFunc {
 					)
 				}
 
-				serviceCtx.Logger("serivce").Errorf("%+v\n", err)
+				serviceCtx.Logger("service").Errorf("%+v\n", err)
 
 				// Must go with gin recovery
 				if gin.IsDebugging() {

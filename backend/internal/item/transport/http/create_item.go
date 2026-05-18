@@ -16,8 +16,8 @@ import (
 // @Produce json
 // @Param item body entity.Item true "Item data"
 // @Success 201 {object} core.APIResponse{result=entity.Item} "Item created successfully"
-// @Failure 400 {object} common.AppError "Bad request"
-// @Failure 500 {object} common.AppError "Internal server error"
+// @Failure 400 {object} core.APIResponse "Bad request"
+// @Failure 500 {object} core.APIResponse "Internal server error"
 // @Router /v1/items [post]
 func (hdl handler) CreateItem() gin.HandlerFunc {
 
