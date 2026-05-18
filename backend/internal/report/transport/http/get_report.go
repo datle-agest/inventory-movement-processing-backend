@@ -11,20 +11,19 @@ import (
 )
 
 // ListTopActiveItems godoc
-// @Summary List top active items by date
-// @Description Returns the most active inventory items for a given date.
-//
-//	If date is today, also includes items currently below low stock threshold.
-//
+// @Summary Retrieve the daily active inventory report
+// @Description Fetches a summary of the most actively moved inventory items for a specific date.
+// @Description Implements a stale-while-revalidate caching mechanism to ensure high availability and graceful fallback during database disruptions.
+// @Description If the requested date is the current system date, the response will additionally include items that have fallen below the low-stock threshold.
 // @Tags Reports
 // @Produce json
-// @Param date  query string false "Report date (YYYY-MM-DD). Defaults to today."
-// @Param limit query int    false "Number of top items to return (default: 5)"
-// @Success 200 {object} core.APIResponse "OK"
-// @Failure 400 {object} core.APIResponse "Invalid query parameter"
-// @Failure 500 {object} core.APIResponse "Internal server error"
+// @Param date  query string false "Target date for the report in YYYY-MM-DD format. Defaults to the current date if omitted."
+// @Param limit query int    false "Maximum number of top active items to retrieve. Must be a strictly positive integer. Default is 5."
+// @Success 200 {object} core.APIResponse "Successfully retrieved the daily report"
+// @Failure 400 {object} core.APIResponse "Bad Request - Invalid date format or non-positive limit parameter"
+// @Failure 500 {object} core.APIResponse "Internal Server Error - Database, aggregation, or caching layer failure"
 // @Router /v1/reports/daily [get]
-func (h *reportHandler) ListTopActiveItems() gin.HandlerFunc {
+func (h *reportHandler) GetDailyReport() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dateStr := c.Query("date")
 		var date time.Time

@@ -312,45 +312,45 @@
         },
         "/v1/reports/daily": {
             "get": {
-                "description": "Returns the most active inventory items for a given date.",
+                "description": "Fetches a summary of the most actively moved inventory items for a specific date.\nImplements a stale-while-revalidate caching mechanism to ensure high availability and graceful fallback during database disruptions.\nIf the requested date is the current system date, the response will additionally include items that have fallen below the low-stock threshold.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Reports"
                 ],
-                "summary": "List top active items by date",
+                "summary": "Retrieve the daily active inventory report",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Report date (YYYY-MM-DD). Defaults to today.",
+                        "description": "Target date for the report in YYYY-MM-DD format. Defaults to the current date if omitted.",
                         "name": "date",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Number of top items to return (default: 5)",
+                        "description": "Maximum number of top active items to retrieve. Must be a strictly positive integer. Default is 5.",
                         "name": "limit",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Successfully retrieved the daily report",
                         "schema": {
                             "$ref": "#/definitions/core.APIResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid query parameter",
+                        "description": "Bad Request - Invalid date format or non-positive limit parameter",
                         "schema": {
-                            "$ref": "#/definitions/common.AppError"
+                            "$ref": "#/definitions/core.APIResponse"
                         }
                     },
                     "500": {
-                        "description": "Internal server error",
+                        "description": "Internal Server Error - Database, aggregation, or caching layer failure",
                         "schema": {
-                            "$ref": "#/definitions/common.AppError"
+                            "$ref": "#/definitions/core.APIResponse"
                         }
                     }
                 }
@@ -358,17 +358,6 @@
         }
     },
     "definitions": {
-        "common.AppError": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "message": {
-                    "type": "string"
-                }
-            }
-        },
         "core.APIResponse": {
             "type": "object",
             "properties": {
