@@ -3,6 +3,7 @@ package http
 import (
 	"inventory-movement-processing/pkg/core"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,8 +19,21 @@ import (
 // @Router /v1/items [get]
 func (hdl handler) ListItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		items, err := hdl.service.ListItem(c.Request.Context())
+		var page, limit int
+		if p, err := strconv.Atoi(c.DefaultQuery("page", "1")); err == nil {
+			page = p
+		}
+		if l, err := strconv.Atoi(c.DefaultQuery("limit", "10")); err == nil {
+			limit = l
+		}
 
+		paging := core.Pagination{
+			Page:  page,
+			Limit: limit,
+		}
+		paging.Process()
+
+		items, err := hdl.service.ListItem(c.Request.Context(), &paging)
 		if err != nil {
 			core.WriteError(c, err)
 			return
@@ -27,7 +41,7 @@ func (hdl handler) ListItem() gin.HandlerFunc {
 
 		c.JSON(
 			http.StatusOK,
-			core.Success(items),
+			core.SuccessWithPaging(items, &paging),
 		)
 
 	}
