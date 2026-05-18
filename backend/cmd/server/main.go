@@ -40,6 +40,11 @@ import (
 // @host localhost:3000
 // @BasePath /api
 // @schemes http https
+//
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer {your JWT token}"
 
 type DBProvider interface {
 	GetDB() *gorm.DB
@@ -58,8 +63,7 @@ func newServiceContext() sctx.ServiceContext {
 
 func setupRouter(serviceCtx sctx.ServiceContext, router *gin.Engine) {
 	router.Use(gin.Logger(), gin.Recovery(), middleware.Recovery(serviceCtx))
-	// cfg := serviceCtx.MustGet(common.KeyComponentConfig).(middleware.Config)
-	// router.Use(middleware.AuthByRole(cfg))
+
 	// Swagger endpoint
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

@@ -125,10 +125,86 @@ paths:
           description: Internal Server Error - Failed to read/process file
           schema:
             $ref: '#/definitions/core.APIResponse'
+      security:
+      - BearerAuth: []
       summary: Import inventory movements from a CSV file
       tags:
       - Movements
   /v1/items:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns a paginated list of inventory items.
+        Supports rich filtering by SKU, name, quantity ranges, low-stock status, and custom sorting options.
+      parameters:
+      - description: Filter by product name substring
+        in: query
+        name: name
+        type: string
+      - description: Filter by product SKU prefix
+        in: query
+        name: sku
+        type: string
+      - description: Filter for items currently running below their safety threshold
+        in: query
+        name: low_stock
+        type: boolean
+      - description: Filter for items with zero quantity
+        in: query
+        name: out_of_stock
+        type: boolean
+      - description: Filter items with quantity greater than or equal to this value
+        in: query
+        name: min_qty
+        type: integer
+      - description: Filter items with quantity less than or equal to this value
+        in: query
+        name: max_qty
+        type: integer
+      - description: Field name to sort by (e.g., name, sku, current_stock)
+        in: query
+        name: sort_by
+        type: string
+      - description: 'Sort direction: asc or desc'
+        in: query
+        name: sort_order
+        type: string
+      - description: 'Page number for pagination (Default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Maximum number of records per page (Default: 10)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved paginated list of items
+          schema:
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                result:
+                  items:
+                    $ref: '#/definitions/entity.Item'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request - Invalid query or sorting parameters
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+        "500":
+          description: Internal Server Error - Database read failure
+          schema:
+            $ref: '#/definitions/core.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: List and filter inventory items
+      tags:
+      - Items
     post:
       consumes:
       - application/json
@@ -168,6 +244,8 @@ paths:
           description: Internal Server Error - Database write failure
           schema:
             $ref: '#/definitions/core.APIResponse'
+      security:
+      - BearerAuth: []
       summary: Register a new inventory item
       tags:
       - Items
@@ -207,6 +285,8 @@ paths:
           description: Internal Server Error - Database read failure
           schema:
             $ref: '#/definitions/core.APIResponse'
+      security:
+      - BearerAuth: []
       summary: Retrieve an inventory item by ID
       tags:
       - Items
@@ -253,6 +333,8 @@ paths:
           description: Internal Server Error - Failed to retrieve movement history
           schema:
             $ref: '#/definitions/core.APIResponse'
+      security:
+      - BearerAuth: []
       summary: Retrieve inventory movement history by item ID
       tags:
       - Items
@@ -289,10 +371,18 @@ paths:
             failure
           schema:
             $ref: '#/definitions/core.APIResponse'
+      security:
+      - BearerAuth: []
       summary: Retrieve the daily active inventory report
       tags:
       - Reports
 schemes:
 - http
 - https
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer {your JWT token}"
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

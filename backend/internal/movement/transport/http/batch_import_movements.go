@@ -23,6 +23,7 @@ import (
 // @Failure 409 {object} core.APIResponse "Conflict - Duplicate transaction detected"
 // @Failure 500 {object} core.APIResponse "Internal Server Error - Failed to read/process file"
 // @Router /v1/inventory-movements/import [post]
+// @Security BearerAuth
 func (h *Handler) ImportBatch() gin.HandlerFunc {
 
 	return func(c *gin.Context) {

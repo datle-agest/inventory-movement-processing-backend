@@ -25,6 +25,7 @@ import (
 // @Failure 404 {object} core.APIResponse "Item not found"
 // @Failure 500 {object} core.APIResponse "Internal Server Error - Failed to retrieve movement history"
 // @Router /v1/items/{id}/movements [get]
+// @Security BearerAuth
 func (h *Handler) GetMovementsByItemID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")

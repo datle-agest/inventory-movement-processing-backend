@@ -21,6 +21,7 @@ import (
 // @Failure 409 {object} core.APIResponse "Conflict - Duplicate SKU detected"
 // @Failure 500 {object} core.APIResponse "Internal Server Error - Database write failure"
 // @Router /v1/items [post]
+// @Security BearerAuth
 func (hdl handler) CreateItem() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
