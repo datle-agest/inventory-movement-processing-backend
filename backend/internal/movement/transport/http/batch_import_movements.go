@@ -16,9 +16,9 @@ import (
 // @Produce json
 // @Param file formData file true "CSV file"
 // @Success 200 {object} core.APIResponse{result=object} "Import result summary"
-// @Failure 400 {object} core.APIResponse "Invalid file or request"
-// @Failure 409 {object} core.APIResponse "Duplicate movement"
-// @Failure 500 {object} core.APIResponse "Internal server error"
+// @Failure 400 {object} common.AppError "Invalid file or request"
+// @Failure 409 {object} common.AppError "Duplicate movement"
+// @Failure 500 {object} common.AppError "Internal server error"
 // @Router /v1/inventory-movements/import [post]
 func (h *Handler) ImportBatch() gin.HandlerFunc {
 

@@ -14,7 +14,7 @@ import (
 // @Accept json
 // @Produce json
 // @Success 200 {object} core.APIResponse{result=[]entity.Item} "List of items"
-// @Failure 500 {object} core.APIResponse "Internal server error"
+// @Failure 500 {object} common.AppError "Internal server error"
 // @Router /v1/items [get]
 func (hdl handler) ListItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
