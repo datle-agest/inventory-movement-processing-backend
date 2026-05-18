@@ -30,7 +30,7 @@ import (
 // @Failure 400 {object} core.APIResponse "Bad Request - Invalid query or sorting parameters"
 // @Failure 500 {object} core.APIResponse "Internal Server Error - Database read failure"
 // @Router /v1/items [get]
-
+// @Security BearerAuth
 func (hdl handler) ListItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var filter entity.ItemFilter

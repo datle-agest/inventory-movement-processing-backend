@@ -23,6 +23,7 @@ import (
 // @Failure 400 {object} core.APIResponse "Bad Request - Invalid date format or non-positive limit parameter"
 // @Failure 500 {object} core.APIResponse "Internal Server Error - Database, aggregation, or caching layer failure"
 // @Router /v1/reports/daily [get]
+// @Security BearerAuth
 func (h *reportHandler) GetDailyReport() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		dateStr := c.Query("date")

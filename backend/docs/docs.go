@@ -25,6 +25,11 @@ const docTemplate = `{
     "paths": {
         "/v1/inventory-movements/import": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Uploads a CSV file containing stock movements (IN, OUT, ADJUST) to process in batch.\nThe engine validates the CSV format and groups rows by item ID.\nMovements are then processed concurrently via a worker pool, ensuring non-negative stock limits and avoiding duplicate external IDs.\nReturns a summary of the batch import execution including success/fail counts and row-level details.",
                 "consumes": [
                     "multipart/form-data"
@@ -86,7 +91,127 @@ const docTemplate = `{
             }
         },
         "/v1/items": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a paginated list of inventory items.\nSupports rich filtering by SKU, name, quantity ranges, low-stock status, and custom sorting options.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Items"
+                ],
+                "summary": "List and filter inventory items",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by product name substring",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by product SKU prefix",
+                        "name": "sku",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter for items currently running below their safety threshold",
+                        "name": "low_stock",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter for items with zero quantity",
+                        "name": "out_of_stock",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter items with quantity greater than or equal to this value",
+                        "name": "min_qty",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter items with quantity less than or equal to this value",
+                        "name": "max_qty",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Field name to sort by (e.g., name, sku, current_stock)",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort direction: asc or desc",
+                        "name": "sort_order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number for pagination (Default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum number of records per page (Default: 10)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved paginated list of items",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/core.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "result": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/entity.Item"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request - Invalid query or sorting parameters",
+                        "schema": {
+                            "$ref": "#/definitions/core.APIResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error - Database read failure",
+                        "schema": {
+                            "$ref": "#/definitions/core.APIResponse"
+                        }
+                    }
+                }
+            },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Registers a new product SKU in the warehouse.\nEnsures SKU is unique and initial stock levels are non-negative.",
                 "consumes": [
                     "application/json"
@@ -151,6 +276,11 @@ const docTemplate = `{
         },
         "/v1/items/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Fetches details of a single inventory item, including current stock and safety threshold, using its unique ID.",
                 "consumes": [
                     "application/json"
@@ -213,6 +343,11 @@ const docTemplate = `{
         },
         "/v1/items/{id}/movements": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Fetches paginated inventory movement records associated with a specific item.\nSupports pagination through ` + "`" + `page` + "`" + ` and ` + "`" + `limit` + "`" + ` query parameters.\nReturns movement history ordered according to repository configuration.",
                 "consumes": [
                     "application/json"
@@ -275,6 +410,11 @@ const docTemplate = `{
         },
         "/v1/reports/daily": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Fetches a summary of the most actively moved inventory items for a specific date.\nImplements a stale-while-revalidate caching mechanism to ensure high availability and graceful fallback during database disruptions.\nIf the requested date is the current system date, the response will additionally include items that have fallen below the low-stock threshold.",
                 "produces": [
                     "application/json"
@@ -428,6 +568,14 @@ const docTemplate = `{
                 "StatusRejected",
                 "StatusDuplicate"
             ]
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer {your JWT token}\"",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`

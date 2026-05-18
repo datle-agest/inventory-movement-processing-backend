@@ -21,6 +21,7 @@ import (
 // @Failure 404 {object} core.APIResponse "Not Found - Item with the specified ID does not exist"
 // @Failure 500 {object} core.APIResponse "Internal Server Error - Database read failure"
 // @Router /v1/items/{id} [get]
+// @Security BearerAuth
 func (hdl handler) GetItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
