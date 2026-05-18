@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	itemEntity "inventory-movement-processing/internal/item/entity"
+	"inventory-movement-processing/pkg/core"
 )
 
 func (repo *repository) GetItemByIDs(ctx context.Context, ids []int32) ([]itemEntity.Item, error) {
@@ -40,10 +41,18 @@ func (repo *repository) ListLowStockItems(
 	return results, nil
 }
 
-func (repo *repository) ListItem(ctx context.Context) ([]itemEntity.Item, error) {
+func (repo *repository) ListItem(ctx context.Context, paging *core.Pagination) ([]itemEntity.Item, error) {
 	var items []itemEntity.Item
-	err := repo.db.WithContext(ctx).Find(&items).Error
+	db := repo.db.WithContext(ctx).Model(&itemEntity.Item{})
 
+	var total int64
+	if err := db.Count(&total).Error; err != nil {
+		return nil, err
+	}
+	paging.Total = int(total)
+
+	offset := (paging.Page - 1) * paging.Limit
+	err := db.Offset(offset).Limit(paging.Limit).Find(&items).Error
 	if err != nil {
 		return nil, err
 	}

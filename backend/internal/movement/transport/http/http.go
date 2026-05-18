@@ -4,11 +4,12 @@ import (
 	"context"
 	"inventory-movement-processing/internal/movement/entity"
 	"inventory-movement-processing/internal/movement/service"
+	"inventory-movement-processing/pkg/core"
 	"mime/multipart"
 )
 
 type movementService interface {
-	GetMovementsByItemID(ctx context.Context, itemId int) ([]*entity.Movement, error)
+	GetMovementsByItemID(ctx context.Context, itemId int, paging *core.Pagination) ([]*entity.Movement, error)
 	ImportBatch(ctx context.Context, file *multipart.FileHeader) (service.ImportBatchResult, error)
 }
 
