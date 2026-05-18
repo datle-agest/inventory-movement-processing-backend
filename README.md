@@ -1,4 +1,5 @@
-# 📦 Inventory Movement Processing System
+
+# Inventory Movement Processing System
 
 [![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go)](https://golang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
@@ -9,7 +10,7 @@
 
 ---
 
-## 📖 Introduction: The "Ghost Inventory" Problem
+## Introduction: The "Ghost Inventory" Problem
 In fast-paced warehouse environments, barcode scanners continuously log transactions (IN, OUT, ADJUST) simultaneously. If two scanners write to the same item's stock balance without synchronization:
 - **Lost Updates** occur, causing discrepancies between digital balances and physical stock.
 - **Negative Stock Balances** happen when an OUT scan executes while another is pending, bypassing stock validation checks.
@@ -19,19 +20,19 @@ This system is built specifically to address these issues, guaranteeing **serial
 
 ---
 
-## 🗺️ Table of Contents
-- [✨ Key Features](#-key-features)
-- [🏗️ Architectural Architecture](#%EF%B8%8F-architectural-architecture)
-- [⚡ High-Throughput Concurrency Model](#-high-throughput-concurrency-model)
-- [📁 Project Directory Structure](#-project-directory-structure)
-- [🛡️ Security & Role-Based Authorization](#%EF%B8%8F-security--role-based-authorization)
-- [🚀 Getting Started](#-getting-started)
-- [📡 API Reference & cURL Examples](#-api-reference--curl-examples)
-- [📝 Key Technical Assumptions](#-key-technical-assumptions)
+##  Table of Contents
+- [Key Features](#-key-features)
+- [Assumptions](#-assumptions)
+- [ Architectural Architecture](#%EF%B8%8F-architectural-architecture)
+- [Main Flow](#-high-throughput-concurrency-model)
+- [ Project Directory Structure](#-project-directory-structure)
+- [ Security & Role-Based Authorization](#%EF%B8%8F-security--role-based-authorization)
+- [ Getting Started](#-getting-started)
+- [ API Reference & cURL Examples](#-api-reference--curl-examples)
 
 ---
 
-## ✨ Key Features
+## Key Features
 - **High-Concurrency Worker Engine** — Groups incoming scanner rows by `item_id` so that mutations to the same item execute sequentially while separate items run concurrently in parallel.
 - **Strict Stock Constraint Enforcement** — Guarantees balances never drop below zero.
 - **Full Audit Trail** — Each inventory mutation tracks a scanner-generated `external_id` for absolute traceability.
@@ -41,82 +42,28 @@ This system is built specifically to address these issues, guaranteeing **serial
 
 ---
 
-## 🏗️ Architectural Architecture
+## Assumptions
+- **Single warehouse** — the system manages one warehouse only.
+- **No login flow** — two static API keys (`STOREKEEPER`, `MANAGER`) are configured in `.env`; no registration or dynamic key issuance.
+- **Scanner flow** — scanners don't call the API per scan. Instead, staff collects scanned items into a CSV and submits it via `POST /inventory-movements/import`.
+- **CSV format** — files must have a valid header row and use comma as delimiter. Max size: 5MB or 10,000 rows. Any structural mismatch rejects the entire batch (fail-fast).
+- **Synchronous import** — clients wait for a direct response (< 30s) with accepted, rejected, and duplicate counts. Failed rows are returned as a downloadable error file.
+- **Movement values** — `IN` and `OUT` are always positive; `ADJUST` can be positive or negative.
+- **Idempotency via `external_id`** — each CSV row must carry a unique scanner-generated ID. Duplicates are skipped and flagged, not rejected as errors.
+- **Master data required** — all `item_id` values must exist before import. Unknown IDs are treated as row-level errors; no auto-creation.
+- **ETL re-runnable** — the daily report job can be triggered manually for any date via CLI; re-running overwrites the existing summary for that day.
+- ---
 
-This application adopts a clean, layered architectural layout, wrapped in a centralized dependency injection registry known as **ServiceContext**. 
 
-```mermaid
-graph TD
-    Client[HTTP Client / Warehouse Scanner] -->|REST API Requests| GinRouter[Gin HTTP Router / Middleware Layer]
-    GinRouter -->|1. AuthByRole Middleware| AuthCheck{Validate API Key}
-    AuthCheck -->|Failed| Err401[401 Unauthorized / 403 Forbidden]
-    AuthCheck -->|Passed| RouteGroup[V1 API Routes]
-    
-    subgraph Composer Layer
-        composer[Composer Wires Repositories, Services, and Handlers]
-    end
-    
-    RouteGroup -->|Invokes Handlers| Handlers[HTTP Handlers: Item, Movement, Report]
-    composer -.-> Handlers
+## Architectural Architecture
+<img width="4321" height="2184" alt="image" src="https://github.com/user-attachments/assets/589df82b-3622-4d87-b401-add5c8548d2b" />
+---
 
-    subgraph Service Context Container (Infrastructure Registry)
-        sctx[ServiceContext]
-        sctx --> ConfigComponent[Config Component]
-        sctx --> GinComponent[Gin Component]
-        sctx --> GORMComponent[GORM Postgres Component]
-        sctx --> RedisComponent[Redis Cache Component]
-        sctx --> WorkerComponent[WorkerPool Component]
-    end
-
-    Handlers -->|Delegates to| Service[Service Layer]
-    Service -->|Interacts with| Repo[Repository Layer]
-    Repo -->|Read / Write SQL| GORMComponent
-    Service -.->|Cache Read / Write| RedisComponent
-
-    subgraph Movement Concurrency Engine
-        Service -->|Group CSV Rows by ItemID| WorkerComponent
-        WorkerComponent -->|Goroutine Tasks| ProcessOne[ProcessOne Transaction]
-        ProcessOne -->|SQL Transactions| GORMComponent
-    end
-```
-
-### Infrastructure Lifecycle Container (`ServiceContext`)
-Instead of global variables or complex DI frameworks, the system employs the `Component` interface under `pkg/service_context` which manages:
-1. **InitFlags**: Registration of CLI flags and parameters.
-2. **Activate**: Initializing connections (DB connection pool, Redis cache client, worker pool buffers).
-3. **Stop**: Gracefully closing network pools and flushing tasks on SIGTERM/SIGINT.
+## Main Flow
 
 ---
 
-## ⚡ High-Throughput Concurrency Model
-To process large batch CSV files efficiently without running into database lock-contention, the system employs a grouped worker pool engine:
-
-```
-[Uploaded CSV File] 
-        │
-        ▼
- [Parse & Validate] ─── (Fail fast if header or row format is corrupted)
-        │
-        ▼
-[Group by Item ID]
-   ├── Item 101: [Movement A, Movement B]  ──► Job 1 (Submitted to Pool)
-   ├── Item 102: [Movement C]              ──► Job 2 (Submitted to Pool)
-   └── Item 103: [Movement D, Movement E]  ──► Job 3 (Submitted to Pool)
-        │
-        ▼
-   [Worker Pool] (Max Workers: Configurable)
-     Goroutines pick up Jobs:
-     - Worker 1 processes Item 101 sequentially (A -> B)
-     - Worker 2 processes Item 102 concurrently
-     - Worker 3 processes Item 103 sequentially (D -> E)
-```
-
-> [!TIP]
-> By processing movements for the same `item_id` sequentially, we avoid database deadlocks and race conditions on the stock balance of that item, while maintaining maximum performance by processing distinct items concurrently across multiple workers.
-
----
-
-## 📁 Project Directory Structure
+## Project Directory Structure
 
 The codebase is strictly organized for separation of concerns:
 
@@ -144,7 +91,7 @@ inventory-movement-processing/
 
 ---
 
-## 🛡️ Security & Role-Based Authorization
+## Security & Role-Based Authorization
 API Endpoints are guarded by static API tokens via a GIn HTTP Middleware (`AuthByRole`). Tokens must be passed in the `Authorization` header as a Bearer token:
 
 ```http
@@ -160,13 +107,13 @@ Two distinct roles are mapped in the system configuration:
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
-### 📦 Prerequisites
+### Prerequisites
 - [Docker & Docker Compose](https://www.docker.com/) (highly recommended)
 - Alternatively: [Go 1.26+](https://go.dev/) with running PostgreSQL and Redis instances.
 
-### 🛠️ Launching the Application
+### Launching the Application
 Launch the complete stack (Postgres 16, Redis 7, Adminer DB UI, and Go server) using a single command:
 
 ```bash
@@ -184,7 +131,7 @@ After startup:
 
 ---
 
-## 📡 API Reference & cURL Examples
+## API Reference & cURL Examples
 
 All endpoints return a uniform standard response format (`core.APIResponse`):
 ```json
@@ -236,10 +183,3 @@ curl -X GET "http://localhost:3000/api/v1/reports/daily?date=2026-05-18&limit=5"
 ```
 
 ---
-
-## 📝 Key Technical Assumptions
-
-- **Immutable External ID** — Scanner logs are considered authoritative source records. If a scanner uploads an `external_id` that already exists in the system, it is recognized as a duplicate transaction, skipped safely, and listed under `duplicate` in the response payload without corrupting balances or failing the rest of the batch.
-- **Fail-Fast File Schema** — If the uploaded CSV file is physically corrupt or misses header declarations, it fails immediately to prevent partial imports of broken records.
-- **Zero Balance Floors** — No scanner is allowed to decrease stock levels below zero. Any action that attempts to do so will be logged as a row-level validation failure, returned in the `failed_rows` report, while other valid rows in the CSV are fully committed.
-- **Idempotent ETL Re-runs** — The report aggregation can be manual or automated. Re-running the aggregation for a specific date overwrites previous data for that date, ensuring correct data synchronization after correction imports.
