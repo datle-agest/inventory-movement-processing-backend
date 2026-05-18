@@ -7,6 +7,7 @@ import (
 	"inventory-movement-processing/internal/movement/entity"
 	"io"
 	"mime/multipart"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -64,6 +65,49 @@ func (s *service) validateFile(file *multipart.FileHeader) error {
 	return nil
 }
 
+// extractCSVHeaders - Extract csv tags from struct
+func extractCSVHeaders(v any) []string {
+
+	t := reflect.TypeOf(v)
+
+	headers := make([]string, 0)
+
+	for i := 0; i < t.NumField(); i++ {
+
+		tag := t.Field(i).Tag.Get("csv")
+
+		// skip ignored/internal fields
+		if tag == "" || tag == "-" || tag == "row_index" {
+			continue
+		}
+
+		headers = append(headers, tag)
+	}
+
+	return headers
+}
+
+// validateCSVHeader - Validate CSV header format
+func validateCSVHeader(actual []string) error {
+
+	expectedHeaders := extractCSVHeaders(entity.CsvMovementRow{})
+
+	if len(actual) != len(expectedHeaders) {
+		return common.ErrBadRequest("invalid csv header")
+	}
+
+	for i, expected := range expectedHeaders {
+
+		actualHeader := strings.TrimSpace(actual[i])
+
+		if actualHeader != expected {
+			return common.ErrBadRequest("invalid csv header format")
+		}
+	}
+
+	return nil
+}
+
 // parseCSV - Parse CSV file
 func (s *service) parseCSV(src io.Reader) ([]entity.CsvMovementRow, []entity.ProcessResult, error) {
 
@@ -75,6 +119,10 @@ func (s *service) parseCSV(src io.Reader) ([]entity.CsvMovementRow, []entity.Pro
 		return nil, nil, common.ErrBadRequest("cannot read csv header")
 	}
 
+	if err := validateCSVHeader(header); err != nil {
+		return nil, nil, err
+	}
+
 	var (
 		rows       []entity.CsvMovementRow
 		failedRows []entity.ProcessResult
@@ -83,6 +131,7 @@ func (s *service) parseCSV(src io.Reader) ([]entity.CsvMovementRow, []entity.Pro
 
 	for {
 		record, err := reader.Read()
+		// valid header
 
 		if err == io.EOF {
 			break

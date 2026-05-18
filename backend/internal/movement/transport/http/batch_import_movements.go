@@ -31,19 +31,11 @@ func (h *Handler) ImportBatch() gin.HandlerFunc {
 		file, err := c.FormFile("file")
 
 		if err != nil {
-
-			core.WriteError(
-				c,
-				common.ErrBadRequest("file is required"),
-			)
-
+			core.WriteError(c, common.ErrBadRequest("file is required"))
 			return
 		}
 
-		result, err := h.service.ImportBatch(
-			c.Request.Context(),
-			file,
-		)
+		result, err := h.service.ImportBatch(c.Request.Context(), file)
 
 		if err != nil {
 			core.WriteError(c, err)
