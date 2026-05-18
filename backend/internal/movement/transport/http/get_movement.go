@@ -49,11 +49,7 @@ func (h *Handler) GetMovementsByItemID() gin.HandlerFunc {
 		}
 		paging.Process()
 
-		movements, err := h.service.GetMovementsByItemID(
-			c.Request.Context(),
-			id,
-			&paging,
-		)
+		movements, err := h.service.GetMovementsByItemID(c.Request.Context(), id, &paging)
 		if err != nil {
 			core.WriteError(c, err)
 			return
