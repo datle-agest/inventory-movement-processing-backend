@@ -21,8 +21,8 @@ import (
 // @Param date  query string false "Report date (YYYY-MM-DD). Defaults to today."
 // @Param limit query int    false "Number of top items to return (default: 5)"
 // @Success 200 {object} core.APIResponse "OK"
-// @Failure 400 {object} common.AppError "Invalid query parameter"
-// @Failure 500 {object} common.AppError "Internal server error"
+// @Failure 400 {object} core.APIResponse "Invalid query parameter"
+// @Failure 500 {object} core.APIResponse "Internal server error"
 // @Router /v1/reports/daily [get]
 func (h *reportHandler) ListTopActiveItems() gin.HandlerFunc {
 	return func(c *gin.Context) {

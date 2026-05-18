@@ -6,6 +6,7 @@ import (
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/internal/item/entity"
 	"inventory-movement-processing/internal/item/service/mocks"
+	"inventory-movement-processing/pkg/core"
 	"testing"
 )
 
@@ -45,12 +46,18 @@ func TestListItem(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := NewItemService(&mocks.ItemRepository{
-				ListItemFn: func(ctx context.Context) ([]entity.Item, error) {
+				// Cập nhật hàm Mock nhận thêm paging tham số
+				ListItemFn: func(ctx context.Context, paging *core.Pagination) ([]entity.Item, error) {
+					if paging != nil && tt.repoErr == nil {
+						paging.Total = len(tt.repoReturn) // Giả lập hành vi gán Total của Repo
+					}
 					return tt.repoReturn, tt.repoErr
 				},
 			})
 
-			result, err := svc.ListItem(ctx)
+			// Khởi tạo paging test
+			paging := &core.Pagination{Page: 1, Limit: 10}
+			result, err := svc.ListItem(ctx, paging)
 
 			if tt.expectedErr == nil {
 				if err != nil {
@@ -58,6 +65,10 @@ func TestListItem(t *testing.T) {
 				}
 				if len(result) != len(tt.repoReturn) {
 					t.Errorf("Expected %d items, got %d", len(tt.repoReturn), len(result))
+				}
+				// Check xem total có được cập nhật đúng không
+				if paging.Total != len(tt.repoReturn) {
+					t.Errorf("Expected paging.Total = %d, got %d", len(tt.repoReturn), paging.Total)
 				}
 				for i, item := range result {
 					if item.Name != tt.repoReturn[i].Name {

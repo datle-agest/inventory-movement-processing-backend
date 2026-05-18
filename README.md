@@ -1,36 +1,44 @@
-# 📦 Inventory Movement Processing System
- 
-> A warehouse inventory management system — built to eliminate ghost inventory through reliable, concurrent stock movement processing.
- 
----
- 
-## Introduction
-Warehouses often report stock that isn't actually there — a problem known as **ghost inventory**. It happens when scanners write data at the same time without proper conflict handling, when duplicate transactions go undetected, or when there's simply no reliable audit trail to trace what went wrong.
 
-## Table of Contents
-- [About](#about)
-- [Features](#features)
-- [Assumptions](#assumptions)
-- [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Security](#security)
----
+# Inventory Movement Processing System
 
-## About
-Inventory Movement Processing System is a service that processes stock movements (IN, OUT, ADJUST) submitted in bulk from warehouse scanners via CSV files. It uses a concurrent worker pool backed by PostgreSQL transactions to guarantee that stock quantities are always consistent — no negative balances, no lost updates, no duplicate records.
+[![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go)](https://golang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis)](https://redis.io/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker)](https://www.docker.com/)
 
-Each movement is recorded with a unique external ID from the scanner, giving warehouse staff a complete audit trail per item. At the end of each day, an ETL job aggregates the raw movement data into a summary table, which powers the reporting API — surfacing totals, top active items, and low-stock alerts.
+> **A high-throughput, concurrent warehouse inventory service designed to eliminate ghost inventory through strict data consistency and a reliable audit trail.**
 
 ---
 
-## Features
-- **Item Management** — create and query inventory items with filtering.
-- **Batch Import** — upload CSV movement files with size validation; returns accepted, rejected, and duplicate counts along with a downloadable error file.
-- **Concurrent Processing** — worker pool with DB transactions ensures no negative stock or lost updates; duplicates are detected via `external_id` and skipped gracefully.
-- **Audit Trail** — full movement history per item, traceable back to the source scanner.
-- **Daily ETL Reports** — automated end-of-day aggregation into summary reports (totals, top K active items, low-stock alerts); re-runnable via CLI for any date.
+## Introduction: The "Ghost Inventory" Problem
+In fast-paced warehouse environments, barcode scanners continuously log transactions (IN, OUT, ADJUST) simultaneously. If two scanners write to the same item's stock balance without synchronization:
+- **Lost Updates** occur, causing discrepancies between digital balances and physical stock.
+- **Negative Stock Balances** happen when an OUT scan executes while another is pending, bypassing stock validation checks.
+- **Duplicate Transactions** slip through if scanner retry-logs aren't verified.
+
+This system is built specifically to address these issues, guaranteeing **serializable-like correctness at the application level** with maximum parallel performance.
+
+---
+
+##  Table of Contents
+- [Key Features](#-key-features)
+- [Assumptions](#-assumptions)
+- [ Architectural Architecture](#%EF%B8%8F-architectural-architecture)
+- [Main Flow](#-high-throughput-concurrency-model)
+- [ Project Directory Structure](#-project-directory-structure)
+- [ Security & Role-Based Authorization](#%EF%B8%8F-security--role-based-authorization)
+- [ Getting Started](#-getting-started)
+- [ API Reference & cURL Examples](#-api-reference--curl-examples)
+
+---
+
+## Key Features
+- **High-Concurrency Worker Engine** — Groups incoming scanner rows by `item_id` so that mutations to the same item execute sequentially while separate items run concurrently in parallel.
+- **Strict Stock Constraint Enforcement** — Guarantees balances never drop below zero.
+- **Full Audit Trail** — Each inventory mutation tracks a scanner-generated `external_id` for absolute traceability.
+- **Daily ETL Aggregations** — Automated summaries featuring total active items, daily turnover, and proactive low-stock alerts.
+- **Smart Redis Caching** — Optimizes reporting performance; reports are stored with a 24-hour TTL, while active today reports refresh with a 1-minute TTL.
+- **Centralized ServiceContext Container** — Elegant registry-component pattern controlling the boot and shutdown lifecycle of all system resources.
 
 ---
 
@@ -44,103 +52,133 @@ Each movement is recorded with a unique external ID from the scanner, giving war
 - **Idempotency via `external_id`** — each CSV row must carry a unique scanner-generated ID. Duplicates are skipped and flagged, not rejected as errors.
 - **Master data required** — all `item_id` values must exist before import. Unknown IDs are treated as row-level errors; no auto-creation.
 - **ETL re-runnable** — the daily report job can be triggered manually for any date via CLI; re-running overwrites the existing summary for that day.
+- ---
 
-## Tech Stack
-| Layer | Technology |
-| :--- | :--- |
-| **Language** | Go (Golang) |
-| **API Style** | REST API |
-| **Database** | PostgreSQL |
-| **Local Dev** | Docker Compose |
-| **Authentication** | API Key |
-| **Concurrency** | Goroutines, Channels, DB Transactions |
-| **CI** | GitHub Actions |
-
----
 
 ## Architecture
+<img width="4321" height="2184" alt="image" src="https://github.com/user-attachments/assets/589df82b-3622-4d87-b401-add5c8548d2b" />
+
+## Main Flow
 
 ---
 
-## Project Structure
+## Project Directory Structure
+
+The codebase is strictly organized for separation of concerns:
+
 ```
-inventory-movement-processing
-├── backend
-│   ├── cmd
-│   │   ├── import-sample
-│   │   ├── migrations
-│   │   └── server
-│   │       └── routes
-│   │           └── v1
-│   ├── common
-│   ├── composer
-│   ├── docs
-│   ├── internal
-│   │   ├── item
-│   │   │   ├── entity
-│   │   │   ├── repository
-│   │   │   │   └── postgres
-│   │   │   ├── service
-│   │   │   └── transport
-│   │   │       └── http
-│   │   ├── movement
-│   │   │   ├── entity
-│   │   │   ├── repository
-│   │   │   │   └── postgres
-│   │   │   ├── service
-│   │   │   └── transport
-│   │   │       └── http
-│   │   └── report
-│   │       ├── entity
-│   │       ├── repository
-│   │       │   └── postgres
-│   │       ├── service
-│   │       └── transport
-│   │           └── http
-│   └── pkg
-│       ├── components
-│       │   ├── configc
-│       │   ├── ginc
-│       │   │   └── middleware
-│       │   ├── gormc
-│       │   │   └── dialets
-│       │   ├── jwtc
-│       │   ├── redisc
-│       │   └── workerc
-│       ├── core
-│       ├── logger
-│       │   └── zap
-│       ├── migrations
-│       └── service_context
-├── docker-compose.yml
+inventory-movement-processing/
+├── backend/
+│   ├── cmd/
+│   │   ├── migrations/      # Auto-migration entrypoint binary
+│   │   └── server/          # Main HTTP server entrypoint
+│   ├── common/              # Global constants, interface helpers, and centralized AppError
+│   ├── composer/            # Structural wiring layer (creates repos -> services -> handlers)
+│   ├── docs/                # Auto-generated Swagger documentation
+│   ├── internal/            # Core business domains (Clean Architecture)
+│   │   ├── item/            # Item registration, lookup, and search
+│   │   ├── movement/        # High-throughput batch imports and audits
+│   │   └── report/          # Daily aggregations, top active ranking, and low-stock alerts
+│   └── pkg/                 # Reusable utility infrastructure
+│       ├── components/      # Lifecycle-managed components (Redis, GORM, Gin, WorkerPool)
+│       ├── core/            # Centralized api response envelope & standard WriteError helper
+│       ├── logger/          # Zap-based structured logger
+│       └── service_context/ # Centralized infrastructure registry container
+├── docker-compose.yml       # Production-ready local stack configurations
 └── README.md
 ```
+
+---
+
+## Security & Role-Based Authorization
+API Endpoints are guarded by static API tokens via a GIn HTTP Middleware (`AuthByRole`). Tokens must be passed in the `Authorization` header as a Bearer token:
+
+```http
+Authorization: Bearer <api-key>
+```
+
+Two distinct roles are mapped in the system configuration:
+
+| Role | Environment Key Name | Target Context |
+| :--- | :--- | :--- |
+| `STOREKEEPER` | `STOREKEEPER_API_KEY` | Restricted to Item registrations and CSV Batch imports. |
+| `MANAGER` | `MANAGER_API_KEY` | Authorized to view inventory summaries, low-stock items, and ranking dashboards. |
+
 ---
 
 ## Getting Started
-### How to run
+
+### Prerequisites
+- [Docker & Docker Compose](https://www.docker.com/) (highly recommended)
+- Alternatively: [Go 1.26+](https://go.dev/) with running PostgreSQL and Redis instances.
+
+### Launching the Application
+Launch the complete stack (Postgres 16, Redis 7, Adminer DB UI, and Go server) using a single command:
+
 ```bash
-# Start containers
+# 1. Spin up all containers in detached mode
 docker compose up -d
- 
-# Run migration
+
+# 2. Apply database schemas and seed initial data
 docker compose exec backend /migrations
 ```
+
+After startup:
+* **HTTP Server** is listening on: `http://localhost:3000`
+* **Swagger Documentation** is available at: `http://localhost:3000/swagger/index.html`
+* **Adminer Database Dashboard** is open at: `http://localhost:8080`
+
 ---
 
-## Security
-All API endpoints are protected by static API keys configured in the environment. Keys are passed via the `Authorization` header as a Bearer token:
- 
+## API Reference & cURL Examples
+
+All endpoints return a uniform standard response format (`core.APIResponse`):
+```json
+{
+  "code": 200,
+  "message": "success message (optional)",
+  "result": { ... }
+}
 ```
-Authorization: Bearer <api-key>
+
+Here are interactive cURL examples to test each flow:
+
+### 1. Register a New Item (Role: `STOREKEEPER`)
+```bash
+curl -X POST http://localhost:3000/api/v1/items \
+  -H "Authorization: Bearer 82b81a84c19b8d17e6c0a4b9a3553a4e" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sku": "SKU-PRO-001",
+    "name": "Mechanical Keyboard",
+    "description": "RGB Backlit tactile blue switches",
+    "price": 89.99,
+    "quantity": 100,
+    "safety_threshold": 10
+  }'
 ```
-There are two hardcoded roles, both with access to all endpoints:
- 
-| Role | Key | Access |
-|---|---|---|
-| `STOREKEEPER` | `API_KEY_STOREKEEPER` | Item management and batch import |
-| `MANAGER` | `API_KEY_MANAGER` | Reporting and inventory viewing |
- 
-> There is no login flow or dynamic key issuance. Keys are set once in `.env` and shared within the team.
+
+### 2. Batch Import Movements (Role: `STOREKEEPER`)
+CSV imports process `IN`, `OUT`, and `ADJUST` mutations. 
+First, construct a `movements.csv` file:
+```csv
+external_id,item_id,movement_type,quantity,movement_time,note
+EXT-MOV-001,1,IN,50,2026-05-18T10:00:00Z,Regular morning replenishment
+EXT-MOV-002,1,OUT,10,2026-05-18T11:30:00Z,Online customer purchase
+```
+
+Submit the CSV via multipart form upload:
+```bash
+curl -X POST http://localhost:3000/api/v1/inventory-movements/import \
+  -H "Authorization: Bearer 82b81a84c19b8d17e6c0a4b9a3553a4e" \
+  -F "file=@movements.csv"
+```
+
+### 3. Fetch Top Active & Low-Stock Alerts Dashboard (Role: `MANAGER`)
+Retrieves the most active items of a given date. If requested for today, it also attaches items currently running below their `safety_threshold`.
+```bash
+curl -X GET "http://localhost:3000/api/v1/reports/daily?date=2026-05-18&limit=5" \
+  -H "Authorization: Bearer 0a04630fdcfebe605c3b3c9ece58b824"
+```
 
 ---

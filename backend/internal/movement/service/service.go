@@ -4,11 +4,12 @@ import (
 	"context"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
 	"inventory-movement-processing/pkg/components/workerc"
+	"inventory-movement-processing/pkg/core"
 	"mime/multipart"
 )
 
 type movementRepository interface {
-	GetMovementsByItemID(ctx context.Context, itemId int) ([]*movementEntity.Movement, error)
+	GetMovementsByItemID(ctx context.Context, itemId int, paging *core.Pagination) ([]*movementEntity.Movement, error)
 	Create(ctx context.Context, movement *movementEntity.Movement) error
 	ProcessMovement(ctx context.Context, m *movementEntity.Movement) error
 }
@@ -16,7 +17,7 @@ type movementRepository interface {
 type MovementService interface {
 	ImportBatch(ctx context.Context, file *multipart.FileHeader) (ImportBatchResult, error)
 	ProcessOne(ctx context.Context, m *movementEntity.Movement) (ProcessStatus, error)
-	GetMovementsByItemID(ctx context.Context, itemId int) ([]*movementEntity.Movement, error)
+	GetMovementsByItemID(ctx context.Context, itemId int, paging *core.Pagination) ([]*movementEntity.Movement, error)
 }
 
 type service struct {

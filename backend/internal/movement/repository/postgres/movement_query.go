@@ -4,6 +4,7 @@ import (
 	"context"
 	"inventory-movement-processing/internal/movement/entity"
 	reportEntity "inventory-movement-processing/internal/report/entity"
+	"inventory-movement-processing/pkg/core"
 	"time"
 )
 
@@ -38,8 +39,18 @@ func (r *movementRepository) AggregateDailyItemSummaryFromMovement(
 	return results, nil
 }
 
-func (r *movementRepository) GetMovementsByItemID(ctx context.Context, itemId int) ([]*entity.Movement, error) {
+func (r *movementRepository) GetMovementsByItemID(ctx context.Context, itemId int, paging *core.Pagination) ([]*entity.Movement, error) {
 	var movements []*entity.Movement
-	err := r.db.WithContext(ctx).Where("item_id = ?", itemId).Find(&movements).Error
+	query := r.db.WithContext(ctx).Model(&entity.Movement{}).Where("item_id = ?", itemId)
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, err
+	}
+	paging.Total = int(total)
+
+	offset := (paging.Page - 1) * paging.Limit
+	err := query.Order("id DESC").Offset(offset).Limit(paging.Limit).Find(&movements).Error
+
 	return movements, err
 }
