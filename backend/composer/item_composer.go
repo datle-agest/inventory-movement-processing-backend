@@ -18,7 +18,6 @@ type itemHandler interface {
 	GetItem() gin.HandlerFunc
 	CreateItem() gin.HandlerFunc
 	ListItem() gin.HandlerFunc
-	DeleteItem() gin.HandlerFunc
 }
 
 func ComposeItemService(serviceCtx sctx.ServiceContext) itemHandler {
