@@ -14,7 +14,8 @@ type Item struct {
 }
 
 type ItemFilter struct {
-	Search     *string `form:"search"`
+	Name       *string `form:"name"`
+    SKU        *string `form:"sku"`
 	LowStock   *bool   `form:"low_stock"`
 	OutOfStock *bool   `form:"out_of_stock"`
 	MinQty     *int32  `form:"min_qty"`
