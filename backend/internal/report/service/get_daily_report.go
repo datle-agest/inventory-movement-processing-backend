@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-// TODO: Format error response
-// TODO: What if cronjob dead and yesterday data stale?
+const cacheTTLToday = 1 * time.Minute
+
 func (s *reportService) GetDailyReport(
 	ctx context.Context,
 	date time.Time,
@@ -36,52 +36,81 @@ func (s *reportService) GetDailyReport(
 	// 1. Try cache
 	cached, found, err := s.cacheStore.Get(ctx, cacheKey)
 	if err == nil && found {
-		var cachedTop []*entity.DailyItemSummary
+		var cachedReport entity.CachedReport
 
-		if err = json.Unmarshal([]byte(cached), &cachedTop); err == nil {
-			if limit > len(cachedTop) {
-				limit = len(cachedTop)
+		if err = json.Unmarshal([]byte(cached), &cachedReport); err == nil {
+			isFresh := !isToday || time.Since(cachedReport.GeneratedAt) <= cacheTTLToday
+			if isFresh {
+				return s.buildResult(ctx, cachedReport.Items, limit, isToday)
 			}
-
-			result := &entity.TopActiveItemsResult{
-				TopItems: cachedTop[:limit],
-			}
-
-			if isToday {
-				result.LowStockItems, err = s.fetchAllLowStockItems(ctx)
-				if err != nil {
-					return nil, err
-				}
-			}
-
-			return result, nil
 		}
 	}
 
-	// 2. If today -> regenerate summary
+	// 2. If today -> regenerate
 	if isToday {
 		if err := s.GenerateDailySummary(ctx, date); err != nil {
 			return nil, common.ErrInternal(err.Error())
 		}
 	}
 
-	// 3. Query full ranking
+	// 3. Query full ranking from DB
 	topItems, err := s.reportRepository.
 		ListTopActiveItemsByDate(ctx, date, s.config.GetReportCacheLimit())
 	if err != nil {
 		return nil, err
 	}
 
-	// 4. Cache full top list
-	if raw, err := json.Marshal(topItems); err == nil {
+	// 4. Check DB staleness
+	if isDataStale(topItems, date) {
+		if err := s.GenerateDailySummary(ctx, date); err != nil {
+			return nil, common.ErrInternal(err.Error())
+		}
+
+		topItems, err = s.reportRepository.
+			ListTopActiveItemsByDate(ctx, date, s.config.GetReportCacheLimit())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// 5. Cache full list with timestamp
+	cachedReport := entity.CachedReport{
+		Items:       topItems,
+		GeneratedAt: now,
+	}
+	if raw, err := json.Marshal(cachedReport); err == nil {
 		ttl := 24 * time.Hour
 		if isToday {
-			ttl = 1 * time.Minute
+			ttl = cacheTTLToday
 		}
 		_ = s.cacheStore.Set(ctx, cacheKey, string(raw), ttl)
 	}
 
-	// 5. Slice limit
+	return s.buildResult(ctx, topItems, limit, isToday)
+}
+
+func isDataStale(items []*entity.DailyItemSummary, date time.Time) bool {
+	if len(items) == 0 {
+		return true
+	}
+
+	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+
+	first := items[0]
+	if first.UpdatedAt == nil {
+		return true
+	}
+
+	return first.UpdatedAt.Before(startOfDay)
+}
+
+func (s *reportService) buildResult(
+	ctx context.Context,
+	topItems []*entity.DailyItemSummary,
+	limit int,
+	isToday bool,
+) (*entity.TopActiveItemsResult, error) {
+
 	if limit > len(topItems) {
 		limit = len(topItems)
 	}
@@ -91,6 +120,7 @@ func (s *reportService) GetDailyReport(
 	}
 
 	if isToday {
+		var err error
 		result.LowStockItems, err = s.fetchAllLowStockItems(ctx)
 		if err != nil {
 			return nil, err

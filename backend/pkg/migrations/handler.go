@@ -4,7 +4,6 @@ import (
 	itemEntity "inventory-movement-processing/internal/item/entity"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
 	dailyItemSummaryEntity "inventory-movement-processing/internal/report/entity"
-	reportEntity "inventory-movement-processing/internal/report/entity"
 
 	"log"
 
@@ -17,7 +16,7 @@ func RunMigration(db *gorm.DB) error {
 	err := db.AutoMigrate(
 		&itemEntity.Item{},
 		&movementEntity.Movement{},
-		&reportEntity.Report{},
+		// &reportEntity.Report{},
 		//&entity.ImportBatch{},
 		&dailyItemSummaryEntity.DailyItemSummary{},
 	)
