@@ -9,6 +9,7 @@ import (
 
 	"inventory-movement-processing/common"
 	itemEntity "inventory-movement-processing/internal/item/entity"
+	"inventory-movement-processing/internal/movement/entity"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
 )
 
@@ -25,8 +26,8 @@ func TestProcessOne_InvalidInput(t *testing.T) {
 	svc := newMovementService(nil, nil)
 	status, err := svc.ProcessOne(context.Background(), m)
 
-	if status != StatusRejected {
-		t.Errorf("expected status %s, got %s", StatusRejected, status)
+	if status != entity.StatusRejected {
+		t.Errorf("expected status %s, got %s", entity.StatusRejected, status)
 	}
 
 	var appErr *common.AppError
@@ -64,8 +65,8 @@ func TestProcessOne_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if status != StatusAccepted {
-		t.Errorf("expected status %s, got %s", StatusAccepted, status)
+	if status != entity.StatusAccepted {
+		t.Errorf("expected status %s, got %s", entity.StatusAccepted, status)
 	}
 	if !processCalled {
 		t.Error("expected ProcessMovement to be called")
@@ -90,8 +91,8 @@ func TestProcessOne_ItemNotFound(t *testing.T) {
 	svc := newMovementService(mr, nil)
 	status, err := svc.ProcessOne(context.Background(), m)
 
-	if status != StatusRejected {
-		t.Errorf("expected status %s, got %s", StatusRejected, status)
+	if status != entity.StatusRejected {
+		t.Errorf("expected status %s, got %s", entity.StatusRejected, status)
 	}
 
 	var appErr *common.AppError
@@ -124,8 +125,8 @@ func TestProcessOne_InsufficientStock(t *testing.T) {
 	svc := newMovementService(mr, nil)
 	status, err := svc.ProcessOne(context.Background(), m)
 
-	if status != StatusRejected {
-		t.Errorf("expected status %s, got %s", StatusRejected, status)
+	if status != entity.StatusRejected {
+		t.Errorf("expected status %s, got %s", entity.StatusRejected, status)
 	}
 
 	var appErr *common.AppError
@@ -158,8 +159,8 @@ func TestProcessOne_DuplicateMovement(t *testing.T) {
 	svc := newMovementService(mr, nil)
 	status, err := svc.ProcessOne(context.Background(), m)
 
-	if status != StatusDuplicate {
-		t.Errorf("expected status %s, got %s", StatusDuplicate, status)
+	if status != entity.StatusDuplicate {
+		t.Errorf("expected status %s, got %s", entity.StatusDuplicate, status)
 	}
 
 	var appErr *common.AppError
@@ -192,8 +193,8 @@ func TestProcessOne_InternalError(t *testing.T) {
 	svc := newMovementService(mr, nil)
 	status, err := svc.ProcessOne(context.Background(), m)
 
-	if status != StatusRejected {
-		t.Errorf("expected status %s, got %s", StatusRejected, status)
+	if status != entity.StatusRejected {
+		t.Errorf("expected status %s, got %s", entity.StatusRejected, status)
 	}
 
 	var appErr *common.AppError

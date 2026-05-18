@@ -13,56 +13,23 @@ import (
 	"time"
 )
 
-type ProcessStatus string
-
-const (
-	StatusAccepted  ProcessStatus = "accepted"
-	StatusRejected  ProcessStatus = "rejected"
-	StatusDuplicate ProcessStatus = "duplicate"
-)
-
-type csvMovementRow struct {
-	RowIndex     int                 `csv:"row_index"`
-	ExternalID   string              `csv:"external_id"`
-	ItemID       int32               `csv:"item_id"`
-	Type         entity.MovementType `csv:"movement_type"`
-	Quantity     int32               `csv:"quantity"`
-	MovementTime time.Time           `csv:"movement_time"` // RFC3339 format: 2026-05-15T08:00:00Z
-	Note         string              `csv:"note"`
-}
-
-type ProcessResult struct {
-	RowIndex    int           `json:"row_index"`
-	ExternalID  string        `json:"external_id"`
-	Status      ProcessStatus `json:"status"`
-	ErrorReason string        `json:"error_reason,omitempty"`
-}
-
-type ImportBatchResult struct {
-	Total      int             `json:"total"`
-	Success    int             `json:"success"`
-	Rejected   int             `json:"rejected"`
-	Duplicate  int             `json:"duplicate"`
-	FailedRows []ProcessResult `json:"failed_rows"`
-}
-
-func (s *service) ImportBatch(ctx context.Context, file *multipart.FileHeader) (ImportBatchResult, error) {
+func (s *service) ImportBatch(ctx context.Context, file *multipart.FileHeader) (entity.ImportBatchResult, error) {
 	// validate file
 	if err := s.validateFile(file); err != nil {
-		return ImportBatchResult{}, err
+		return entity.ImportBatchResult{}, err
 	}
 
 	// open file
 	f, err := file.Open()
 	if err != nil {
-		return ImportBatchResult{}, common.ErrInternal("cannot open file")
+		return entity.ImportBatchResult{}, common.ErrInternal("cannot open file")
 	}
 	defer f.Close()
 
 	// parse csv
 	validRows, parseFailedRows, err := s.parseCSV(f)
 	if err != nil {
-		return ImportBatchResult{}, err
+		return entity.ImportBatchResult{}, err
 	}
 
 	// group by item_id
@@ -98,7 +65,7 @@ func (s *service) validateFile(file *multipart.FileHeader) error {
 }
 
 // parseCSV - Parse CSV file
-func (s *service) parseCSV(src io.Reader) ([]csvMovementRow, []ProcessResult, error) {
+func (s *service) parseCSV(src io.Reader) ([]entity.CsvMovementRow, []entity.ProcessResult, error) {
 
 	reader := csv.NewReader(src)
 
@@ -109,8 +76,8 @@ func (s *service) parseCSV(src io.Reader) ([]csvMovementRow, []ProcessResult, er
 	}
 
 	var (
-		rows       []csvMovementRow
-		failedRows []ProcessResult
+		rows       []entity.CsvMovementRow
+		failedRows []entity.ProcessResult
 		rowIndex   = 1
 	)
 
@@ -142,10 +109,10 @@ func (s *service) parseCSV(src io.Reader) ([]csvMovementRow, []ProcessResult, er
 		if err != nil {
 			failedRows = append(
 				failedRows,
-				ProcessResult{
+				entity.ProcessResult{
 					RowIndex:    rowIndex,
 					ExternalID:  row["external_id"],
-					Status:      StatusRejected,
+					Status:      entity.StatusRejected,
 					ErrorReason: "invalid item_id",
 				},
 			)
@@ -157,10 +124,10 @@ func (s *service) parseCSV(src io.Reader) ([]csvMovementRow, []ProcessResult, er
 		if err != nil {
 			failedRows = append(
 				failedRows,
-				ProcessResult{
+				entity.ProcessResult{
 					RowIndex:    rowIndex,
 					ExternalID:  row["external_id"],
-					Status:      StatusRejected,
+					Status:      entity.StatusRejected,
 					ErrorReason: "invalid quantity",
 				},
 			)
@@ -172,10 +139,10 @@ func (s *service) parseCSV(src io.Reader) ([]csvMovementRow, []ProcessResult, er
 		if !movementType.IsValid() {
 			failedRows = append(
 				failedRows,
-				ProcessResult{
+				entity.ProcessResult{
 					RowIndex:    rowIndex,
 					ExternalID:  row["external_id"],
-					Status:      StatusRejected,
+					Status:      entity.StatusRejected,
 					ErrorReason: "invalid movement_type",
 				},
 			)
@@ -188,10 +155,10 @@ func (s *service) parseCSV(src io.Reader) ([]csvMovementRow, []ProcessResult, er
 		if err != nil {
 			failedRows = append(
 				failedRows,
-				ProcessResult{
+				entity.ProcessResult{
 					RowIndex:   rowIndex,
 					ExternalID: row["external_id"],
-					Status:     StatusRejected,
+					Status:     entity.StatusRejected,
 					ErrorReason: "invalid movement_time " +
 						"(RFC3339 required)",
 				},
@@ -199,7 +166,7 @@ func (s *service) parseCSV(src io.Reader) ([]csvMovementRow, []ProcessResult, er
 			continue
 		}
 
-		csvRow := csvMovementRow{
+		csvRow := entity.CsvMovementRow{
 			RowIndex:     rowIndex,
 			ExternalID:   row["external_id"],
 			ItemID:       int32(itemIDInt),
@@ -221,20 +188,20 @@ func (s *service) parseCSV(src io.Reader) ([]csvMovementRow, []ProcessResult, er
 }
 
 // groupRowsByItem - Group rows by item_id for sequential processing per item
-func (s *service) groupRowsByItem(rows []csvMovementRow) map[int32][]csvMovementRow {
-	result := make(map[int32][]csvMovementRow)
+func (s *service) groupRowsByItem(rows []entity.CsvMovementRow) map[int32][]entity.CsvMovementRow {
+	result := make(map[int32][]entity.CsvMovementRow)
 	for _, row := range rows {
 		result[row.ItemID] = append(result[row.ItemID], row)
 	}
 	return result
 }
 
-func (s *service) runImportWorkers(ctx context.Context, grouped map[int32][]csvMovementRow) chan ProcessResult {
+func (s *service) runImportWorkers(ctx context.Context, grouped map[int32][]entity.CsvMovementRow) chan entity.ProcessResult {
 	totalRows := 0
 	for _, rows := range grouped {
 		totalRows += len(rows)
 	}
-	resultCh := make(chan ProcessResult, totalRows)
+	resultCh := make(chan entity.ProcessResult, totalRows)
 
 	// Submit one job per item group
 	// Movements of same item processed sequentially
@@ -261,7 +228,7 @@ func (s *service) runImportWorkers(ctx context.Context, grouped map[int32][]csvM
 					movement,
 				)
 
-				res := ProcessResult{
+				res := entity.ProcessResult{
 					RowIndex:   r.RowIndex,
 					ExternalID: r.ExternalID,
 					Status:     status,
@@ -287,9 +254,9 @@ func (s *service) runImportWorkers(ctx context.Context, grouped map[int32][]csvM
 // summarizeResults
 func (s *service) summarizeResults(
 	total int,
-	parseFailedRows []ProcessResult,
-	resultCh chan ProcessResult,
-) ImportBatchResult {
+	parseFailedRows []entity.ProcessResult,
+	resultCh chan entity.ProcessResult,
+) entity.ImportBatchResult {
 
 	var (
 		success   int
@@ -298,7 +265,7 @@ func (s *service) summarizeResults(
 	)
 
 	failedRows := append(
-		[]ProcessResult{},
+		[]entity.ProcessResult{},
 		parseFailedRows...,
 	)
 
@@ -308,20 +275,20 @@ func (s *service) summarizeResults(
 
 		switch r.Status {
 
-		case StatusAccepted:
+		case entity.StatusAccepted:
 			success++
 
-		case StatusRejected:
+		case entity.StatusRejected:
 			rejected++
 			failedRows = append(failedRows, r)
 
-		case StatusDuplicate:
+		case entity.StatusDuplicate:
 			duplicate++
 			failedRows = append(failedRows, r)
 		}
 	}
 
-	return ImportBatchResult{
+	return entity.ImportBatchResult{
 		Total:      total,
 		Success:    success,
 		Rejected:   rejected,

@@ -10,6 +10,7 @@ import (
 
 	"inventory-movement-processing/common"
 	itemEntity "inventory-movement-processing/internal/item/entity"
+	"inventory-movement-processing/internal/movement/entity"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
 )
 
@@ -198,14 +199,14 @@ EXT-004,2,ADJUST,-5,2026-05-15T11:00:00Z,Valid Adjustment`
 	// Failed row index sorting or ordering
 	for _, failedRow := range result.FailedRows {
 		if failedRow.ExternalID == "EXT-002" {
-			if failedRow.Status != StatusRejected {
+			if failedRow.Status != entity.StatusRejected {
 				t.Errorf("expected EXT-002 status rejected, got %s", failedRow.Status)
 			}
 			if failedRow.ErrorReason != "insufficient stock" {
 				t.Errorf("expected insufficient stock, got '%s'", failedRow.ErrorReason)
 			}
 		} else if failedRow.ExternalID == "EXT-003" {
-			if failedRow.Status != StatusDuplicate {
+			if failedRow.Status != entity.StatusDuplicate {
 				t.Errorf("expected EXT-003 status duplicate, got %s", failedRow.Status)
 			}
 			if failedRow.ErrorReason != "duplicate external_id" {

@@ -8,11 +8,11 @@ import (
 	"inventory-movement-processing/internal/movement/entity"
 )
 
-func (s *service) ProcessOne(ctx context.Context, m *entity.Movement) (ProcessStatus, error) {
+func (s *service) ProcessOne(ctx context.Context, m *entity.Movement) (entity.ProcessStatus, error) {
 
 	// validate input
 	if err := m.Validate(); err != nil {
-		return StatusRejected,
+		return entity.StatusRejected,
 			common.ErrBadRequest(err.Error())
 	}
 
@@ -24,22 +24,22 @@ func (s *service) ProcessOne(ctx context.Context, m *entity.Movement) (ProcessSt
 		switch {
 
 		case errors.Is(err, itemEntity.ErrItemNotFound):
-			return StatusRejected,
+			return entity.StatusRejected,
 				common.ErrNotFound("inventory item not found")
 
 		case errors.Is(err, itemEntity.ErrInsufficientStock):
-			return StatusRejected,
+			return entity.StatusRejected,
 				common.ErrBadRequest("insufficient stock")
 
 		case errors.Is(err, itemEntity.ErrDuplicateMovement):
-			return StatusDuplicate,
+			return entity.StatusDuplicate,
 				common.ErrConflict("duplicate external_id")
 
 		default:
 			// return StatusRejected, common.ErrInternal(err.Error())
-			return StatusRejected, common.ErrInternal("cannot process movement")
+			return entity.StatusRejected, common.ErrInternal("cannot process movement")
 		}
 	}
 
-	return StatusAccepted, nil
+	return entity.StatusAccepted, nil
 }

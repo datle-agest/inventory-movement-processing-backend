@@ -15,8 +15,8 @@ type movementRepository interface {
 }
 
 type MovementService interface {
-	ImportBatch(ctx context.Context, file *multipart.FileHeader) (ImportBatchResult, error)
-	ProcessOne(ctx context.Context, m *movementEntity.Movement) (ProcessStatus, error)
+	ImportBatch(ctx context.Context, file *multipart.FileHeader) (movementEntity.ImportBatchResult, error)
+	ProcessOne(ctx context.Context, m *movementEntity.Movement) (movementEntity.ProcessStatus, error)
 	GetMovementsByItemID(ctx context.Context, itemId int, paging *core.Pagination) ([]*movementEntity.Movement, error)
 }
 
