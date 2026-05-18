@@ -20,24 +20,28 @@ func TestListItem(t *testing.T) {
 
 	tests := []struct {
 		name        string
+		filter      *entity.ItemFilter
 		repoReturn  []entity.Item
 		repoErr     error
 		expectedErr error
 	}{
 		{
 			name:        "Success: repo returns list of items",
+			filter:      &entity.ItemFilter{},
 			repoReturn:  fakeItems,
 			repoErr:     nil,
 			expectedErr: nil,
 		},
 		{
 			name:        "Internal Error: repo fails, should wrap into ErrInternal",
+			filter:      &entity.ItemFilter{},
 			repoReturn:  nil,
 			repoErr:     errors.New("db connection lost"),
 			expectedErr: common.ErrInternal("cannot list items"),
 		},
 		{
 			name:       "Success: repo returns empty list",
+			filter:     &entity.ItemFilter{},
 			repoReturn: []entity.Item{},
 			repoErr:    nil,
 		},
@@ -46,18 +50,17 @@ func TestListItem(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := NewItemService(&mocks.ItemRepository{
-				// Cập nhật hàm Mock nhận thêm paging tham số
-				ListItemFn: func(ctx context.Context, paging *core.Pagination) ([]entity.Item, error) {
+				ListItemFn: func(ctx context.Context, filter *entity.ItemFilter, paging *core.Pagination) ([]entity.Item, error) {
 					if paging != nil && tt.repoErr == nil {
-						paging.Total = len(tt.repoReturn) // Giả lập hành vi gán Total của Repo
+						paging.Total = len(tt.repoReturn)
 					}
 					return tt.repoReturn, tt.repoErr
 				},
 			})
 
-			// Khởi tạo paging test
 			paging := &core.Pagination{Page: 1, Limit: 10}
-			result, err := svc.ListItem(ctx, paging)
+
+			result, err := svc.ListItem(ctx, tt.filter, paging)
 
 			if tt.expectedErr == nil {
 				if err != nil {
@@ -66,7 +69,6 @@ func TestListItem(t *testing.T) {
 				if len(result) != len(tt.repoReturn) {
 					t.Errorf("Expected %d items, got %d", len(tt.repoReturn), len(result))
 				}
-				// Check xem total có được cập nhật đúng không
 				if paging.Total != len(tt.repoReturn) {
 					t.Errorf("Expected paging.Total = %d, got %d", len(tt.repoReturn), paging.Total)
 				}

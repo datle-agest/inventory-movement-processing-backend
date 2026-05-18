@@ -1,6 +1,7 @@
 package http
 
 import (
+	"inventory-movement-processing/internal/item/entity"
 	"inventory-movement-processing/pkg/core"
 	"net/http"
 	"strconv"
@@ -19,6 +20,13 @@ import (
 // @Router /v1/items [get]
 func (hdl handler) ListItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var filter entity.ItemFilter
+
+		if err := c.ShouldBindQuery(&filter); err != nil {
+			c.JSON(http.StatusBadRequest, core.Fail(http.StatusBadRequest, err.Error()))
+			return
+		}
+
 		var page, limit int
 		if p, err := strconv.Atoi(c.DefaultQuery("page", "1")); err == nil {
 			page = p
@@ -27,13 +35,10 @@ func (hdl handler) ListItem() gin.HandlerFunc {
 			limit = l
 		}
 
-		paging := core.Pagination{
-			Page:  page,
-			Limit: limit,
-		}
+		paging := core.Pagination{Page: page, Limit: limit}
 		paging.Process()
 
-		items, err := hdl.service.ListItem(c.Request.Context(), &paging)
+		items, err := hdl.service.ListItem(c.Request.Context(), &filter, &paging)
 		if err != nil {
 			core.WriteError(c, err)
 			return
