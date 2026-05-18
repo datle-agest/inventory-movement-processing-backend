@@ -13,6 +13,16 @@ type Item struct {
 	LowStockThreshold int32  `json:"low_stock_threshold" gorm:"column:low_stock_threshold;not null;default:0;check:chk_low_stock_threshold_non_negative,low_stock_threshold >= 0"`
 }
 
+type ItemFilter struct {
+	Search     *string `form:"search"`
+	LowStock   *bool   `form:"low_stock"`
+	OutOfStock *bool   `form:"out_of_stock"`
+	MinQty     *int32  `form:"min_qty"`
+	MaxQty     *int32  `form:"max_qty"`
+	SortBy     string  `form:"sort_by"`
+	SortOrder  string  `form:"sort_order"`
+}
+
 func (Item) TableName() string {
 	return "inventory_items"
 }
