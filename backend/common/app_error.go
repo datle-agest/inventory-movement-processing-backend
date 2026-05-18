@@ -10,6 +10,8 @@ type AppError struct {
 
 func (e *AppError) Error() string { return e.Message }
 
+func (e *AppError) HttpStatusCode() int { return e.StatusCode }
+
 func ErrNotFound(msg string) *AppError {
 	return &AppError{StatusCode: http.StatusNotFound, Code: "NOT_FOUND", Message: msg}
 }

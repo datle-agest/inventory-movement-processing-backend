@@ -17,9 +17,9 @@ import (
 // @Produce json
 // @Param id path int true "Item ID"
 // @Success 200 {object} core.APIResponse{result=entity.Item} "Item details"
-// @Failure 400 {object} core.APIResponse "Invalid item ID"
-// @Failure 404 {object} core.APIResponse "Item not found"
-// @Failure 500 {object} core.APIResponse "Internal server error"
+// @Failure 400 {object} common.AppError "Invalid item ID"
+// @Failure 404 {object} common.AppError "Item not found"
+// @Failure 500 {object} common.AppError "Internal server error"
 // @Router /v1/items/{id} [get]
 func (hdl handler) GetItem() gin.HandlerFunc {
 	return func(c *gin.Context) {

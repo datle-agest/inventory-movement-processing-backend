@@ -69,7 +69,7 @@ func (s *reportService) GetDailyReport(
 	topItems, err := s.reportRepository.
 		ListTopActiveItemsByDate(ctx, date, s.config.GetReportCacheLimit())
 	if err != nil {
-		return nil, err
+		return nil, common.ErrInternal("cannot query top active items")
 	}
 
 	// 4. Cache full top list
