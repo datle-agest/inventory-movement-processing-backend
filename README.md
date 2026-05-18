@@ -61,9 +61,11 @@ This system is built specifically to address these issues, guaranteeing **serial
 ## Main Flow
 ### 📥 1. Batch Import Flow (CSV Import & Worker Concurrency)
 High-level workflow of the concurrent batch import engine, showing CSV parsing, item-based worker pool parallelization, and GORM database transaction locking with scanner ID idempotency:
+
 <img width="1740" height="1373" alt="image" src="https://github.com/user-attachments/assets/46d08d61-f7e1-4b37-9362-0ada63c5d553" />
 ### 📊 2. Report ETL Flow (ETL & Redis Caching)
 High-level workflow of the daily aggregation service, highlighting the Redis caching strategy, database fallback query, and real-time low-stock alert merges:
+
 <img width="626" height="1244" alt="image" src="https://github.com/user-attachments/assets/6c38892c-0759-448f-ad3a-7a2bc135e246" />
 
 ## Project Directory Structure
