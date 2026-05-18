@@ -13,7 +13,7 @@ import (
 )
 
 type reportHandler interface {
-	ListTopActiveItems() gin.HandlerFunc
+	GetDailyReport() gin.HandlerFunc
 }
 
 func ComposeReportService(serviceCtx sctx.ServiceContext) reportHandler {
