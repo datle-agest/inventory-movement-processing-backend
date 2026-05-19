@@ -2,12 +2,45 @@ package service
 
 import (
 	"context"
+	itemEntity "inventory-movement-processing/internal/item/entity"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
 	reportEntity "inventory-movement-processing/internal/report/entity"
 	"inventory-movement-processing/pkg/components/workerc"
 	"inventory-movement-processing/pkg/core"
 	"time"
 )
+
+// --- itemRepository mock ---
+type mockItemRepo struct {
+	getItemForUpdateFn func(ctx context.Context, id int32) (*itemEntity.Item, error)
+	updateStockFn      func(ctx context.Context, itemID int32, quantity int32) error
+}
+
+func (m *mockItemRepo) GetItemForUpdate(ctx context.Context, id int32) (*itemEntity.Item, error) {
+	if m.getItemForUpdateFn != nil {
+		return m.getItemForUpdateFn(ctx, id)
+	}
+	return nil, nil
+}
+
+func (m *mockItemRepo) UpdateStock(ctx context.Context, itemID int32, quantity int32) error {
+	if m.updateStockFn != nil {
+		return m.updateStockFn(ctx, itemID, quantity)
+	}
+	return nil
+}
+
+// --- TxManager mock ---
+type mockTxManager struct {
+	withTxFn func(ctx context.Context, fn func(ctx context.Context) error) error
+}
+
+func (m *mockTxManager) WithTx(ctx context.Context, fn func(ctx context.Context) error) error {
+	if m.withTxFn != nil {
+		return m.withTxFn(ctx, fn)
+	}
+	return fn(ctx) // Unit test mặc định chạy đồng bộ thẳng luôn
+}
 
 // --- movementRepository mock ---
 type mockMovementRepo struct {
@@ -60,16 +93,11 @@ func (m *mockWorkerPool) Submit(job workerc.Job) {
 	job()
 }
 
-func (m *mockWorkerPool) Wait() {
-	if m.waitFn != nil {
-		m.waitFn()
-	}
-}
-
 // Helpers
 func newMovementService(
 	mr movementRepository,
 	wp workerc.WorkerPool,
 ) MovementService {
-	return NewMovementService(mr, wp)
+	// Tự động inject mock mặc định vào
+	return NewMovementService(mr, &mockItemRepo{}, &mockTxManager{}, wp)
 }

@@ -157,22 +157,25 @@ EXT-004,2,ADJUST,-5,2026-05-15T11:00:00Z,Valid Adjustment`
 	fileHeader := createTestMultipartFileHeader(t, "data.csv", csvContent)
 
 	mr := &mockMovementRepo{
-		processMovementFn: func(ctx context.Context, m *movementEntity.Movement) error {
-			switch m.ExternalID {
-			case "EXT-001":
-				return nil
-			case "EXT-002":
-				return itemEntity.ErrInsufficientStock
-			case "EXT-003":
+		createFn: func(ctx context.Context, m *movementEntity.Movement) error {
+			if m.ExternalID == "EXT-003" {
 				return itemEntity.ErrDuplicateMovement
-			case "EXT-004":
-				return nil
 			}
-			return errors.New("unexpected external id")
+			return nil
 		},
 	}
 
-	svc := newMovementService(mr, &mockWorkerPool{})
+	ir := &mockItemRepo{
+		getItemForUpdateFn: func(ctx context.Context, id int32) (*itemEntity.Item, error) {
+			return &itemEntity.Item{
+				CurrentStock: 50, // ĐÃ BỎ "ID: id" để tránh lỗi struct literal
+			}, nil
+		},
+	}
+
+	// Gọi trực tiếp hàm NewMovementService gốc thay vì dùng helper
+	svc := NewMovementService(mr, ir, &mockTxManager{}, &mockWorkerPool{})
+
 	result, err := svc.ImportBatch(context.Background(), fileHeader)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

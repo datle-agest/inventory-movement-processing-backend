@@ -2,9 +2,14 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"inventory-movement-processing/internal/item/entity"
 	itemEntity "inventory-movement-processing/internal/item/entity"
+	"inventory-movement-processing/pkg/components/gormc"
 	"inventory-movement-processing/pkg/core"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (repo *repository) GetItemByIDs(ctx context.Context, ids []int32) ([]itemEntity.Item, error) {
@@ -75,6 +80,26 @@ func (repo *repository) GetItem(ctx context.Context, id int32) (*itemEntity.Item
 	err := repo.db.WithContext(ctx).First(&item, id).Error
 
 	if err != nil {
+		return nil, err
+	}
+
+	return &item, nil
+}
+
+func (repo *repository) GetItemForUpdate(ctx context.Context, id int32) (*itemEntity.Item, error) {
+	var item itemEntity.Item
+
+	// Lấy DB từ transaction context ra
+	db := gormc.GetDB(ctx, repo.db)
+
+	err := db.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		First(&item, id).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, itemEntity.ErrItemNotFound
+		}
 		return nil, err
 	}
 
