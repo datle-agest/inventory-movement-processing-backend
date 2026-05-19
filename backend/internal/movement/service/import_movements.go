@@ -2,36 +2,39 @@ package service
 
 import (
 	"context"
-	"encoding/csv"
+	"errors"
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/internal/movement/entity"
-	"io"
 	"mime/multipart"
-	"reflect"
-	"sort"
-	"strconv"
-	"strings"
 	"sync"
-	"time"
 )
 
 func (s *service) ImportBatch(ctx context.Context, file *multipart.FileHeader) (entity.ImportBatchResult, error) {
-	// validate file
+	// validate file check định dạng, dung lượng
 	if err := s.validateFile(file); err != nil {
+		s.logger.Warnf("[Service][ImportBatch] file validation failed: %v", err)
 		return entity.ImportBatchResult{}, err
 	}
 
 	// open file
 	f, err := file.Open()
 	if err != nil {
-		return entity.ImportBatchResult{}, common.ErrInternal("cannot open file")
+		s.logger.Errorf("[Service][ImportBatch] failed to open uploaded file: %v", err)
+		return entity.ImportBatchResult{}, common.ErrInternal("cannot open uploaded file")
 	}
 	defer f.Close()
 
 	// parse csv
 	validRows, parseFailedRows, err := s.parseCSV(f)
 	if err != nil {
-		return entity.ImportBatchResult{}, err
+		var appErr *common.AppError
+		if errors.As(err, &appErr) {
+			s.logger.Warnf("[Service][ImportBatch] csv parse logic error: %v", appErr.Message)
+			return entity.ImportBatchResult{}, appErr
+		}
+
+		s.logger.Errorf("[Service][ImportBatch] failed to parse CSV file: %v", err)
+		return entity.ImportBatchResult{}, common.ErrInternal("failed to parse CSV file")
 	}
 
 	// group by item_id
@@ -43,198 +46,9 @@ func (s *service) ImportBatch(ctx context.Context, file *multipart.FileHeader) (
 	totalRows := len(validRows) + len(parseFailedRows)
 
 	// summarize
-	result := s.summarizeResults(
-		totalRows,
-		parseFailedRows,
-		resultCh,
-	)
+	result := s.summarizeResults(totalRows, parseFailedRows, resultCh)
 
 	return result, nil
-}
-
-// validateFile - Validate file
-func (s *service) validateFile(file *multipart.FileHeader) error {
-	if file == nil {
-		return common.ErrBadRequest("file is required")
-	}
-	if file.Size == 0 {
-		return common.ErrBadRequest("file is empty")
-	}
-	if !strings.HasSuffix(strings.ToLower(file.Filename), ".csv") {
-		return common.ErrBadRequest("file must be CSV format")
-	}
-	return nil
-}
-
-// extractCSVHeaders - Extract csv tags from struct
-func extractCSVHeaders(v any) []string {
-
-	t := reflect.TypeOf(v)
-
-	headers := make([]string, 0)
-
-	for i := 0; i < t.NumField(); i++ {
-
-		tag := t.Field(i).Tag.Get("csv")
-
-		// skip ignored/internal fields
-		if tag == "" || tag == "-" || tag == "row_index" {
-			continue
-		}
-
-		headers = append(headers, tag)
-	}
-
-	return headers
-}
-
-// validateCSVHeader - Validate CSV header format
-func validateCSVHeader(actual []string) error {
-
-	expectedHeaders := extractCSVHeaders(entity.CsvMovementRow{})
-
-	if len(actual) != len(expectedHeaders) {
-		return common.ErrBadRequest("invalid csv header")
-	}
-
-	for i, expected := range expectedHeaders {
-
-		actualHeader := strings.TrimSpace(actual[i])
-
-		if actualHeader != expected {
-			return common.ErrBadRequest("invalid csv header format")
-		}
-	}
-
-	return nil
-}
-
-// parseCSV - Parse CSV file
-func (s *service) parseCSV(src io.Reader) ([]entity.CsvMovementRow, []entity.ProcessResult, error) {
-
-	reader := csv.NewReader(src)
-
-	// read header
-	header, err := reader.Read()
-	if err != nil {
-		return nil, nil, common.ErrBadRequest("cannot read csv header")
-	}
-
-	if err := validateCSVHeader(header); err != nil {
-		return nil, nil, err
-	}
-
-	var (
-		rows       []entity.CsvMovementRow
-		failedRows []entity.ProcessResult
-		rowIndex   = 1
-	)
-
-	for {
-		record, err := reader.Read()
-		// valid header
-
-		if err == io.EOF {
-			break
-		}
-
-		// hard csv error
-		if err != nil {
-			return nil, nil, common.ErrBadRequest("invalid csv format")
-		}
-
-		rowIndex++
-
-		row := make(map[string]string)
-
-		for i, h := range header {
-
-			if i < len(record) {
-				row[strings.TrimSpace(h)] = strings.TrimSpace(record[i])
-			}
-		}
-
-		// validate item_id
-		itemIDInt, err := strconv.Atoi(row["item_id"])
-		if err != nil {
-			failedRows = append(
-				failedRows,
-				entity.ProcessResult{
-					RowIndex:    rowIndex,
-					ExternalID:  row["external_id"],
-					Status:      entity.StatusRejected,
-					ErrorReason: "invalid item_id",
-				},
-			)
-			continue
-		}
-
-		// validate quantity
-		quantityInt, err := strconv.Atoi(row["quantity"])
-		if err != nil {
-			failedRows = append(
-				failedRows,
-				entity.ProcessResult{
-					RowIndex:    rowIndex,
-					ExternalID:  row["external_id"],
-					Status:      entity.StatusRejected,
-					ErrorReason: "invalid quantity",
-				},
-			)
-			continue
-		}
-
-		movementType := entity.MovementType(row["movement_type"])
-		// validate movement type
-		if !movementType.IsValid() {
-			failedRows = append(
-				failedRows,
-				entity.ProcessResult{
-					RowIndex:    rowIndex,
-					ExternalID:  row["external_id"],
-					Status:      entity.StatusRejected,
-					ErrorReason: "invalid movement_type",
-				},
-			)
-			continue
-		}
-
-		// validate movement time
-		movementTime, err := time.Parse(time.RFC3339, row["movement_time"])
-
-		if err != nil {
-			failedRows = append(
-				failedRows,
-				entity.ProcessResult{
-					RowIndex:   rowIndex,
-					ExternalID: row["external_id"],
-					Status:     entity.StatusRejected,
-					ErrorReason: "invalid movement_time " +
-						"(RFC3339 required)",
-				},
-			)
-			continue
-		}
-
-		csvRow := entity.CsvMovementRow{
-			RowIndex:     rowIndex,
-			ExternalID:   row["external_id"],
-			ItemID:       int32(itemIDInt),
-			Type:         movementType,
-			Quantity:     int32(quantityInt),
-			MovementTime: movementTime,
-			Note:         row["note"],
-		}
-		rows = append(rows, csvRow)
-	}
-	// sort by business event time
-	sort.Slice(rows, func(i, j int) bool {
-		return rows[i].MovementTime.Before(
-			rows[j].MovementTime,
-		)
-	})
-
-	return rows, failedRows, nil
 }
 
 // groupRowsByItem - Group rows by item_id for sequential processing per item
@@ -317,10 +131,7 @@ func (s *service) summarizeResults(
 		duplicate int
 	)
 
-	failedRows := append(
-		[]entity.ProcessResult{},
-		parseFailedRows...,
-	)
+	failedRows := append([]entity.ProcessResult{}, parseFailedRows...)
 
 	rejected = len(parseFailedRows)
 
