@@ -10,6 +10,10 @@ It does not manage business logic or application use cases directly.
 
 ---
 
+## Service context Lifecycle Flow Diagram
+
+<img width="852" height="1348" alt="Untitled Diagram" src="https://github.com/user-attachments/assets/f7b15024-4d28-4340-9882-7e38344c3c54" />
+
 ## Core Concept
 
 The ServiceContext acts as a registry and lifecycle manager for components.

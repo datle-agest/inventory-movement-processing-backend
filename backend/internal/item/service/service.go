@@ -4,6 +4,7 @@ import (
 	"context"
 	"inventory-movement-processing/internal/item/entity"
 	"inventory-movement-processing/pkg/core"
+	"inventory-movement-processing/pkg/logger"
 )
 
 type itemRepository interface {
@@ -25,11 +26,13 @@ type ItemService interface {
 }
 
 type service struct {
-	repo itemRepository
+	repo   itemRepository
+	logger logger.Logger
 }
 
-func NewItemService(repo itemRepository) ItemService {
+func NewItemService(repo itemRepository, logger logger.Logger,) ItemService {
 	return &service{
 		repo: repo,
+		logger: logger,
 	}
 }

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"inventory-movement-processing/internal/item/entity"
 	itemEntity "inventory-movement-processing/internal/item/entity"
 	"inventory-movement-processing/pkg/components/gormc"
