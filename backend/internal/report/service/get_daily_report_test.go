@@ -55,6 +55,7 @@ func TestGetDailyReport_LimitExceedsResults_ClampsToLen(t *testing.T) {
 			},
 		},
 		&mockConfig{cacheLimit: 10},
+		&mockLogger{},
 	)
 
 	result, err := svc.GetDailyReport(context.Background(), yesterday(), 10)
@@ -101,6 +102,7 @@ func TestGetDailyReport_CacheHit_Today_Stale_Regenerates(t *testing.T) {
 			},
 		},
 		&mockConfig{cacheLimit: 10},
+		&mockLogger{},
 	)
 
 	result, err := svc.GetDailyReport(context.Background(), today(), 5)
@@ -149,6 +151,7 @@ func TestGetDailyReport_DBStale_ByUpdatedAt_FallbackRegenerate(t *testing.T) {
 			},
 		},
 		&mockConfig{cacheLimit: 10},
+		&mockLogger{},
 	)
 
 	result, err := svc.GetDailyReport(context.Background(), yesterday(), 4)
@@ -182,6 +185,7 @@ func TestGetDailyReport_Errors(t *testing.T) {
 					&mockMovementUseCase{}, nil, &mockCache{
 						getFn: func(_ context.Context, _ string) (string, bool, error) { return "", false, nil },
 					}, &mockConfig{cacheLimit: 10},
+					&mockLogger{},
 				)
 			},
 		},
@@ -201,6 +205,7 @@ func TestGetDailyReport_Errors(t *testing.T) {
 					&mockCache{
 						getFn: func(_ context.Context, _ string) (string, bool, error) { return cachedJSON, true, nil },
 					}, &mockConfig{cacheLimit: 10},
+					&mockLogger{},
 				)
 			},
 		},

@@ -28,28 +28,33 @@ func (s *reportService) GetDailyReport(
 			now.Month() == date.Month() &&
 			now.Day() == date.Day()
 
-	cacheKey := fmt.Sprintf(
-		"report:top_active:%s",
-		date.Format("2006-01-02"),
-	)
+	dateStr := date.Format("2006-01-02")
+	cacheKey := fmt.Sprintf("report:top_active:%s", dateStr)
 
 	// 1. Try cache
 	cached, found, err := s.cacheStore.Get(ctx, cacheKey)
-	if err == nil && found {
+	if err != nil {
+		s.logger.Warnf("Failed to get cache for key %s: %v", cacheKey, err)
+	} else if found {
 		var cachedReport entity.CachedReport
-
 		if err = json.Unmarshal([]byte(cached), &cachedReport); err == nil {
 			isFresh := !isToday || time.Since(cachedReport.GeneratedAt) <= cacheTTLToday
 			if isFresh {
+				s.logger.Infof("Cache hit (fresh) for daily report key: %s", cacheKey)
 				return s.buildResult(ctx, cachedReport.Items, limit, isToday)
 			}
+			s.logger.Infof("Cache hit but stale for daily report key: %s. Proceeding to regenerate.", cacheKey)
+		} else {
+			s.logger.Errorf("Failed to unmarshal cache data for key %s: %v", cacheKey, err)
 		}
 	}
 
 	// 2. If today -> regenerate
 	if isToday {
+		s.logger.Infof("Report requested for today (%s), triggering summary generation", dateStr)
 		if err := s.GenerateDailySummary(ctx, date); err != nil {
-			return nil, common.ErrInternal(err.Error())
+			s.logger.Errorf("GenerateDailySummary failed for today: %v", err)
+			return nil, common.ErrInternal("failed to process daily summary")
 		}
 	}
 
@@ -57,19 +62,23 @@ func (s *reportService) GetDailyReport(
 	topItems, err := s.reportRepository.
 		ListTopActiveItemsByDate(ctx, date, s.config.GetReportCacheLimit())
 	if err != nil {
+		s.logger.Errorf("ListTopActiveItemsByDate failed for %s: %v", dateStr, err)
 		return nil, common.ErrInternal("cannot query top active items")
 	}
 
 	// 4. Check DB staleness
 	if isDataStale(topItems, date) {
+		s.logger.Infof("DB data is stale for %s, triggering fallback generation", dateStr)
 		if err := s.GenerateDailySummary(ctx, date); err != nil {
-			return nil, common.ErrInternal(err.Error())
+			s.logger.Errorf("GenerateDailySummary failed during stale fallback: %v", err)
+			return nil, common.ErrInternal("failed to process daily summary")
 		}
 
 		topItems, err = s.reportRepository.
 			ListTopActiveItemsByDate(ctx, date, s.config.GetReportCacheLimit())
 		if err != nil {
-			return nil, err
+			s.logger.Errorf("ListTopActiveItemsByDate failed after fallback generation: %v", err)
+			return nil, common.ErrInternal("cannot query top active items")
 		}
 	}
 
@@ -83,7 +92,11 @@ func (s *reportService) GetDailyReport(
 		if isToday {
 			ttl = cacheTTLToday
 		}
-		_ = s.cacheStore.Set(ctx, cacheKey, string(raw), ttl)
+		if errCache := s.cacheStore.Set(ctx, cacheKey, string(raw), ttl); errCache != nil {
+			s.logger.Warnf("Failed to set cache for key %s: %v", cacheKey, errCache)
+		}
+	} else {
+		s.logger.Errorf("Failed to marshal report for caching: %v", err)
 	}
 
 	return s.buildResult(ctx, topItems, limit, isToday)
@@ -123,7 +136,8 @@ func (s *reportService) buildResult(
 		var err error
 		result.LowStockItems, err = s.fetchAllLowStockItems(ctx)
 		if err != nil {
-			return nil, err
+			s.logger.Errorf("Failed to construct buildResult due to low stock fetch error: %v", err)
+			return nil, common.ErrInternal("failed to fetch low stock items")
 		}
 	}
 
@@ -133,7 +147,8 @@ func (s *reportService) buildResult(
 func (s *reportService) fetchAllLowStockItems(ctx context.Context) ([]*itemEntity.Item, error) {
 	items, err := s.itemRepository.ListLowStockItems(ctx)
 	if err != nil {
-		return nil, common.ErrInternal(err.Error())
+		s.logger.Errorf("ItemRepository.ListLowStockItems failed: %v", err)
+		return nil, err
 	}
 
 	return items, nil
