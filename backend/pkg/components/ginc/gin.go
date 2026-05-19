@@ -15,7 +15,7 @@ import (
 
 const (
 	defaultPort = 3000
-	defaultMode = "debug"
+	defaultMode = ""
 )
 
 type Config struct {
