@@ -29,9 +29,7 @@ func ComposeReportService(serviceCtx sctx.ServiceContext) reportHandler {
 	reportRepo := reportRepository.NewReportRepository(db)
 	itemRepo := itemRepository.NewItemRepository(db)
 
-	// no need worker pool for movement
-	movementSv := movementService.NewMovementService(movementRepo, nil)
-	itemSv := itemService.NewItemService(itemRepo)
+	movementSv := movementService.NewMovementService(movementRepo, nil, nil, workerPool)
 
 	reportSv := service.NewReportService(reportRepo, movementSv, itemSv, redisComp, configComp, logger)
 

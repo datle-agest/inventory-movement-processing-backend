@@ -12,6 +12,8 @@ type itemRepository interface {
 	ListItem(ctx context.Context, filter *entity.ItemFilter, paging *core.Pagination) ([]entity.Item, error)
 	CreateItem(ctx context.Context, item entity.Item) (*entity.Item, error)
 	ListLowStockItems(ctx context.Context) ([]*entity.Item, error)
+	UpdateStock(ctx context.Context, itemID int32, newStock int32) error
+	GetItemForUpdate(ctx context.Context, id int32) (*entity.Item, error)
 }
 
 type ItemService interface {
@@ -19,6 +21,8 @@ type ItemService interface {
 	ListItem(ctx context.Context, filter *entity.ItemFilter, paging *core.Pagination) ([]entity.Item, error)
 	CreateItem(ctx context.Context, item entity.Item) (*entity.Item, error)
 	ListLowStockItems(ctx context.Context) ([]*entity.Item, error)
+	UpdateStock(ctx context.Context, itemID int32, newStock int32) error
+	GetItemForUpdate(ctx context.Context, id int32) (*entity.Item, error)
 }
 
 type service struct {

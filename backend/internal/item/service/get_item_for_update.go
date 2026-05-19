@@ -6,8 +6,8 @@ import (
 	"inventory-movement-processing/internal/item/entity"
 )
 
-func (s *service) GetItem(ctx context.Context, id int32) (*entity.Item, error) {
-	item, err := s.repo.GetItem(ctx, id)
+func (s *service) GetItemForUpdate(ctx context.Context, id int32) (*entity.Item, error) {
+	item, err := s.repo.GetItemForUpdate(ctx, id)
 
 	if err != nil {
 		return nil, common.ErrInternal(err.Error())
