@@ -29,6 +29,7 @@ func TestGenerateDailySummary_Success(t *testing.T) {
 		nil,
 		&mockCache{getFn: nil},
 		&mockConfig{cacheLimit: 10},
+		&mockLogger{},
 	)
 
 	err := svc.GenerateDailySummary(context.Background(), today())
@@ -55,6 +56,7 @@ func TestGenerateDailySummary_EmptySummaries_SkipsUpsert(t *testing.T) {
 		nil,
 		&mockCache{getFn: nil},
 		&mockConfig{},
+		&mockLogger{},
 	)
 
 	err := svc.GenerateDailySummary(context.Background(), today())
@@ -79,6 +81,7 @@ func TestGenerateDailySummary_AggregateError(t *testing.T) {
 		nil,
 		&mockCache{getFn: nil},
 		&mockConfig{},
+		&mockLogger{},
 	)
 
 	err := svc.GenerateDailySummary(context.Background(), today())
@@ -104,6 +107,7 @@ func TestGenerateDailySummary_UpsertError(t *testing.T) {
 		nil,
 		&mockCache{getFn: nil},
 		&mockConfig{},
+		&mockLogger{},
 	)
 
 	err := svc.GenerateDailySummary(context.Background(), today())
