@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -252,14 +253,17 @@ func (s *service) runImportWorkers(ctx context.Context, grouped map[int32][]enti
 	}
 	resultCh := make(chan entity.ProcessResult, totalRows)
 
+	var wg sync.WaitGroup
+
 	// Submit one job per item group
 	// Movements of same item processed sequentially
 	// Different items processed concurrently
 	for _, itemRows := range grouped {
 
 		rows := itemRows
-
+		wg.Add(1)
 		s.workerPool.Submit(func() {
+			defer wg.Done()
 			// sequential within same item
 			for _, r := range rows {
 
@@ -293,7 +297,7 @@ func (s *service) runImportWorkers(ctx context.Context, grouped map[int32][]enti
 	}
 
 	go func() {
-		s.workerPool.Wait()
+		wg.Wait()
 		close(resultCh)
 	}()
 

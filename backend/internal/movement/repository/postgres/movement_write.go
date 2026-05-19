@@ -66,7 +66,7 @@ func (r *movementRepository) ProcessMovement(ctx context.Context, m *movementEnt
 		// check stock
 		if item.CurrentStock < m.Quantity {
 			tx.Rollback()
-			return movementEntity.ErrInsufficientStock
+			return inventoryEntity.ErrInsufficientStock
 		}
 		item.CurrentStock -= m.Quantity
 
@@ -74,6 +74,10 @@ func (r *movementRepository) ProcessMovement(ctx context.Context, m *movementEnt
 		item.CurrentStock += m.Quantity
 
 	case movementEntity.MovementTypeAdjust:
+		if m.Quantity < 0 && item.CurrentStock < -m.Quantity {
+			tx.Rollback()
+			return inventoryEntity.ErrInsufficientStock
+		}
 		item.CurrentStock += m.Quantity
 	}
 
@@ -86,7 +90,7 @@ func (r *movementRepository) ProcessMovement(ctx context.Context, m *movementEnt
 			"duplicate",
 		) {
 
-			return movementEntity.ErrDuplicateMovement
+			return inventoryEntity.ErrDuplicateMovement
 		}
 		return err
 	}
