@@ -11,7 +11,6 @@ type Job func()
 
 type WorkerPool interface {
 	Submit(job Job)
-	Wait()
 }
 
 type workerPool struct {
@@ -115,8 +114,4 @@ func (wp *workerPool) Submit(job Job) {
 
 		job()
 	}
-}
-
-func (wp *workerPool) Wait() {
-	wp.jobWg.Wait()
 }
