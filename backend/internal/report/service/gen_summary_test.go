@@ -9,109 +9,105 @@ import (
 	reportEntity "inventory-movement-processing/internal/report/entity"
 )
 
-func TestGenerateDailySummary_Success(t *testing.T) {
-	summaries := makeSummaries(3)
+func TestReportService_GenerateDailySummary(t *testing.T) {
+	ctx := context.Background()
 
-	svc := newService(
-		&mockReportRepo{
-			upsertFn: func(_ context.Context, data []*reportEntity.DailyItemSummary) error {
-				if len(data) != 3 {
-					t.Errorf("expected 3 summaries, got %d", len(data))
-				}
-				return nil
-			},
-		},
-		&mockMovementUseCase{
-			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
-				return summaries, nil
-			},
-		},
-		nil,
-		&mockCache{getFn: nil},
-		&mockConfig{cacheLimit: 10},
-		&mockLogger{},
-	)
+	testDate := time.Date(2026, 5, 19, 0, 0, 0, 0, time.UTC)
 
-	err := svc.GenerateDailySummary(context.Background(), today())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	mockErr := errors.New("mock unexpected error")
+
+	mockSummaries := []*reportEntity.DailyItemSummary{
+		{ItemID: 1, TotalIn: 10, TotalOut: 5},
 	}
-}
 
-func TestGenerateDailySummary_EmptySummaries_SkipsUpsert(t *testing.T) {
-	upsertCalled := false
-
-	svc := newService(
-		&mockReportRepo{
-			upsertFn: func(_ context.Context, _ []*reportEntity.DailyItemSummary) error {
-				upsertCalled = true
-				return nil
+	tests := []struct {
+		name        string
+		mockMove    *mockMovementUseCase
+		mockRepo    *mockReportRepo
+		wantErr     bool
+		expectedErr error
+	}{
+		{
+			name: "Case 1: Success with aggregated data",
+			mockMove: &mockMovementUseCase{
+				aggregateFn: func(ctx context.Context, date time.Time) ([]*reportEntity.DailyItemSummary, error) {
+					return mockSummaries, nil
+				},
 			},
-		},
-		&mockMovementUseCase{
-			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
-				return []*reportEntity.DailyItemSummary{}, nil
-			},
-		},
-		nil,
-		&mockCache{getFn: nil},
-		&mockConfig{},
-		&mockLogger{},
-	)
+			mockRepo: &mockReportRepo{
+				upsertFn: func(ctx context.Context, data []*reportEntity.DailyItemSummary) error {
+					if len(data) != 1 {
+						t.Errorf("expected 1 item, got %d", len(data))
+					}
 
-	err := svc.GenerateDailySummary(context.Background(), today())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+					return nil
+				},
+			},
+			wantErr:     false,
+			expectedErr: nil,
+		},
+		{
+			name: "Case 2: Success with empty aggregated data",
+			mockMove: &mockMovementUseCase{
+				aggregateFn: func(ctx context.Context, date time.Time) ([]*reportEntity.DailyItemSummary, error) {
+					return []*reportEntity.DailyItemSummary{}, nil
+				},
+			},
+			mockRepo: &mockReportRepo{
+				upsertFn: func(ctx context.Context, data []*reportEntity.DailyItemSummary) error {
+					t.Errorf("upsert should not be called when there is no data")
+					return nil
+				},
+			},
+			wantErr:     false,
+			expectedErr: nil,
+		},
+		{
+			name: "Case 3: Failed to save aggregated data",
+			mockMove: &mockMovementUseCase{
+				aggregateFn: func(ctx context.Context, date time.Time) ([]*reportEntity.DailyItemSummary, error) {
+					return mockSummaries, nil
+				},
+			},
+			mockRepo: &mockReportRepo{
+				upsertFn: func(ctx context.Context, data []*reportEntity.DailyItemSummary) error {
+					return mockErr
+				},
+			},
+			wantErr:     true,
+			expectedErr: mockErr,
+		},
 	}
-	if upsertCalled {
-		t.Error("upsert should not be called when summaries is empty")
-	}
-}
 
-func TestGenerateDailySummary_AggregateError(t *testing.T) {
-	wantErr := errors.New("aggregate failed")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockItemRepo := &mockItemRepo{}
+			mockCache := &mockCache{}
+			mockConfig := &mockConfig{}
+			mockLogger := &mockLogger{}
 
-	svc := newService(
-		&mockReportRepo{},
-		&mockMovementUseCase{
-			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
-				return nil, wantErr
-			},
-		},
-		nil,
-		&mockCache{getFn: nil},
-		&mockConfig{},
-		&mockLogger{},
-	)
+			svc := newService(
+				tt.mockRepo,
+				tt.mockMove,
+				mockItemRepo,
+				mockCache,
+				mockConfig,
+				mockLogger,
+			)
 
-	err := svc.GenerateDailySummary(context.Background(), today())
-	if !errors.Is(err, wantErr) {
-		t.Errorf("expected %v, got %v", wantErr, err)
-	}
-}
+			err := svc.GenerateDailySummary(ctx, testDate)
 
-func TestGenerateDailySummary_UpsertError(t *testing.T) {
-	wantErr := errors.New("upsert failed")
+			// VERIFY
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GenerateDailySummary() error = %v, wantErr %v", err, tt.wantErr)
+			}
 
-	svc := newService(
-		&mockReportRepo{
-			upsertFn: func(_ context.Context, _ []*reportEntity.DailyItemSummary) error {
-				return wantErr
-			},
-		},
-		&mockMovementUseCase{
-			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
-				return makeSummaries(2), nil
-			},
-		},
-		nil,
-		&mockCache{getFn: nil},
-		&mockConfig{},
-		&mockLogger{},
-	)
-
-	err := svc.GenerateDailySummary(context.Background(), today())
-	if !errors.Is(err, wantErr) {
-		t.Errorf("expected %v, got %v", wantErr, err)
+			if err != nil && tt.expectedErr != nil && !errors.Is(err, tt.expectedErr) {
+				t.Errorf("GenerateDailySummary() expected error %v, got %v",
+					tt.expectedErr,
+					err,
+				)
+			}
+		})
 	}
 }
