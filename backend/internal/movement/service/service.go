@@ -18,7 +18,7 @@ type movementRepository interface {
 	AggregateDailyItemSummaryFromMovement(ctx context.Context, start time.Time, end time.Time) ([]*reportEntity.DailyItemSummary, error)
 }
 
-type itemRepository interface {
+type itemService interface {
 	GetItemForUpdate(ctx context.Context, id int32) (*itemEntity.Item, error)
 	UpdateStock(ctx context.Context, itemID int32, quantity int32) error
 }
@@ -32,20 +32,20 @@ type MovementService interface {
 
 type service struct {
 	movementRepo movementRepository
-	itemRepo     itemRepository   // Inject thêm Repo của Item
-	txManager    common.TxManager // Inject thêm TxManager
+	itemService  itemService
+	txManager    common.TxManager
 	workerPool   workerc.WorkerPool
 }
 
 func NewMovementService(
 	movementRepo movementRepository,
-	itemRepo itemRepository,
+	itemService itemService,
 	txManager common.TxManager,
 	workerPool workerc.WorkerPool,
 ) MovementService {
 	return &service{
 		movementRepo: movementRepo,
-		itemRepo:     itemRepo,
+		itemService:  itemService,
 		txManager:    txManager,
 		workerPool:   workerPool,
 	}
