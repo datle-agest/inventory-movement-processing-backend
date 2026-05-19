@@ -25,10 +25,11 @@ type movementHandler interface {
 func ComposeMovementService(serviceCtx sctx.ServiceContext) movementHandler {
 	db := serviceCtx.MustGet(common.KeyComponentPostgres).(common.DBProvider).GetDB()
 	workerPool := serviceCtx.MustGet(common.KeyCompWorkerPool).(workerc.WorkerPool)
+	logger := serviceCtx.Logger("movement-service")
 
 	movementRepo := movementPostgres.NewMovementRepository(db)
 	itemRepo := itemPostgres.NewItemRepository(db)
-	itemSv := itemService.NewItemService(itemRepo)
+	itemSv := itemService.NewItemService(itemRepo, logger)
 	txManager := gormc.NewGormTxManager(db)
 	uc := movementService.NewMovementService(movementRepo, itemSv, txManager, workerPool)
 
