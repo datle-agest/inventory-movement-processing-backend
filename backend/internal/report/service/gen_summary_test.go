@@ -21,7 +21,7 @@ func TestGenerateDailySummary_Success(t *testing.T) {
 				return nil
 			},
 		},
-		&mockMovementRepo{
+		&mockMovementUseCase{
 			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
 				return summaries, nil
 			},
@@ -47,7 +47,7 @@ func TestGenerateDailySummary_EmptySummaries_SkipsUpsert(t *testing.T) {
 				return nil
 			},
 		},
-		&mockMovementRepo{
+		&mockMovementUseCase{
 			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
 				return []*reportEntity.DailyItemSummary{}, nil
 			},
@@ -71,7 +71,7 @@ func TestGenerateDailySummary_AggregateError(t *testing.T) {
 
 	svc := newService(
 		&mockReportRepo{},
-		&mockMovementRepo{
+		&mockMovementUseCase{
 			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
 				return nil, wantErr
 			},
@@ -96,7 +96,7 @@ func TestGenerateDailySummary_UpsertError(t *testing.T) {
 				return wantErr
 			},
 		},
-		&mockMovementRepo{
+		&mockMovementUseCase{
 			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
 				return makeSummaries(2), nil
 			},

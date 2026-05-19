@@ -47,7 +47,7 @@ func TestGetDailyReport_LimitExceedsResults_ClampsToLen(t *testing.T) {
 				return summaries, nil
 			},
 		},
-		&mockMovementRepo{},
+		&mockMovementUseCase{},
 		nil,
 		&mockCache{
 			getFn: func(_ context.Context, _ string) (string, bool, error) {
@@ -85,7 +85,7 @@ func TestGetDailyReport_CacheHit_Today_Stale_Regenerates(t *testing.T) {
 				return freshSummaries, nil
 			},
 		},
-		&mockMovementRepo{
+		&mockMovementUseCase{
 			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
 				return freshSummaries, nil
 			},
@@ -137,7 +137,7 @@ func TestGetDailyReport_DBStale_ByUpdatedAt_FallbackRegenerate(t *testing.T) {
 				return freshSummaries, nil
 			},
 		},
-		&mockMovementRepo{
+		&mockMovementUseCase{
 			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
 				return freshSummaries, nil
 			},
@@ -179,7 +179,7 @@ func TestGetDailyReport_Errors(t *testing.T) {
 							return nil, errors.New("db error")
 						},
 					},
-					&mockMovementRepo{}, nil, &mockCache{
+					&mockMovementUseCase{}, nil, &mockCache{
 						getFn: func(_ context.Context, _ string) (string, bool, error) { return "", false, nil },
 					}, &mockConfig{cacheLimit: 10},
 				)
@@ -192,7 +192,7 @@ func TestGetDailyReport_Errors(t *testing.T) {
 				summaries := makeSummaries(2)
 				cachedJSON := makeCachedJSON(t, summaries, time.Now())
 				return newService(
-					&mockReportRepo{}, &mockMovementRepo{},
+					&mockReportRepo{}, &mockMovementUseCase{},
 					&mockItemRepo{
 						listLowStockFn: func(_ context.Context) ([]*itemEntity.Item, error) {
 							return nil, errors.New("low stock error")

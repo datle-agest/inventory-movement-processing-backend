@@ -24,12 +24,12 @@ func (m *mockReportRepo) ListTopActiveItemsByDate(ctx context.Context, date time
 	return m.listTopActiveFn(ctx, date, limit)
 }
 
-// --- movementRepository mock ---
-type mockMovementRepo struct {
+// --- movementUseCase mock ---
+type mockMovementUseCase struct {
 	aggregateFn func(ctx context.Context, date time.Time) ([]*reportEntity.DailyItemSummary, error)
 }
 
-func (m *mockMovementRepo) AggregateDailyItemSummaryFromMovement(ctx context.Context, date time.Time) ([]*reportEntity.DailyItemSummary, error) {
+func (m *mockMovementUseCase) AggregateDailyItemSummaryFromMovement(ctx context.Context, date time.Time) ([]*reportEntity.DailyItemSummary, error) {
 	return m.aggregateFn(ctx, date)
 }
 
@@ -78,12 +78,12 @@ func (m *mockConfig) GetReportCacheLimit() int { return m.cacheLimit }
 
 func newService(
 	rr reportRepository,
-	mr movementRepository,
+	mu movementUseCase,
 	ir itemRepository,
 	cache *mockCache,
 	cfg *mockConfig,
 ) *reportService {
-	return NewReportService(rr, mr, ir, cache, cfg)
+	return NewReportService(rr, mu, ir, cache, cfg)
 }
 
 func today() time.Time {
