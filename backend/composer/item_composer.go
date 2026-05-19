@@ -23,8 +23,9 @@ type itemHandler interface {
 func ComposeItemService(serviceCtx sctx.ServiceContext) itemHandler {
 	db := serviceCtx.MustGet(common.KeyComponentPostgres).(DBProvider).GetDB()
 	repo := postgres.NewItemRepository(db)
+	logger := serviceCtx.Logger("item-service")
 
-	service := itemService.NewItemService(repo)
+	service := itemService.NewItemService(repo, logger)
 
 	handler := itemHttp.NewItemHandler(service)
 

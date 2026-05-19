@@ -56,7 +56,7 @@ func TestListItem(t *testing.T) {
 					}
 					return tt.repoReturn, tt.repoErr
 				},
-			})
+			}, &mocks.Logger{})
 
 			paging := &core.Pagination{Page: 1, Limit: 10}
 

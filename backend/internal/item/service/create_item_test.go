@@ -62,7 +62,7 @@ func TestCreateItem(t *testing.T) {
 				CreateItemFn: func(ctx context.Context, item entity.Item) (*entity.Item, error) {
 					return tt.repoReturn, tt.repoErr
 				},
-			})
+			}, &mocks.Logger{})
 
 			result, err := svc.CreateItem(ctx, tt.input)
 

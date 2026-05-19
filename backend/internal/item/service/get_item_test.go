@@ -62,7 +62,7 @@ func TestGetItem(t *testing.T) {
 				},
 			}
 
-			svc := NewItemService(mockRepo)
+			svc := NewItemService(mockRepo, &mocks.Logger{})
 
 			item, err := svc.GetItem(ctx, tt.id)
 
