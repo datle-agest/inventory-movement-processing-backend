@@ -10,7 +10,7 @@ type ItemRepository struct {
 	GetItemFn    func(ctx context.Context, id int32) (*entity.Item, error)
 	ListItemFn   func(ctx context.Context, filter *entity.ItemFilter, paging *core.Pagination) ([]entity.Item, error)
 	CreateItemFn func(ctx context.Context, item entity.Item) (*entity.Item, error)
-	DeleteItemFn func(ctx context.Context, id int) error
+	ListLowStockItemsFn func(ctx context.Context) ([]*entity.Item, error)
 }
 
 func (m *ItemRepository) GetItem(ctx context.Context, id int32) (*entity.Item, error) {
@@ -34,9 +34,9 @@ func (m *ItemRepository) CreateItem(ctx context.Context, item entity.Item) (*ent
 	return nil, nil
 }
 
-func (m *ItemRepository) DeleteItem(ctx context.Context, id int) error {
-	if m.DeleteItemFn != nil {
-		return m.DeleteItemFn(ctx, id)
+func (m *ItemRepository) ListLowStockItems(ctx context.Context) ([]*entity.Item, error) {
+	if m.ListLowStockItemsFn != nil {
+		return m.ListLowStockItemsFn(ctx)
 	}
-	return nil
+	return nil, nil
 }
