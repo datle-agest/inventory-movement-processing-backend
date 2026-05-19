@@ -8,6 +8,7 @@ import (
 
 	itemEntity "inventory-movement-processing/internal/item/entity"
 	reportEntity "inventory-movement-processing/internal/report/entity"
+	"inventory-movement-processing/pkg/logger"
 )
 
 // --- reportRepository mock ---
@@ -74,16 +75,38 @@ type mockConfig struct {
 
 func (m *mockConfig) GetReportCacheLimit() int { return m.cacheLimit }
 
+// --- Logger mock ---
+type mockLogger struct{}
+
+func (m *mockLogger) Debug(args ...interface{}) {}
+func (m *mockLogger) Info(args ...interface{})  {}
+func (m *mockLogger) Warn(args ...interface{})  {}
+func (m *mockLogger) Error(args ...interface{}) {}
+
+func (m *mockLogger) Debugf(format string, args ...interface{}) {}
+func (m *mockLogger) Infof(format string, args ...interface{})  {}
+func (m *mockLogger) Warnf(format string, args ...interface{})  {}
+func (m *mockLogger) Errorf(format string, args ...interface{}) {}
+
+func (m *mockLogger) With(key string, value interface{}) logger.Logger {
+	return m
+}
+
+func (m *mockLogger) WithFields(fields logger.Fields) logger.Logger {
+	return m
+}
+
 // Helpers
 
 func newService(
 	rr reportRepository,
-	mu movementUseCase,
-	ir itemRepository,
+	mu movementService,
+	ir itemService,
 	cache *mockCache,
 	cfg *mockConfig,
+	log logger.Logger,
 ) *reportService {
-	return NewReportService(rr, mu, ir, cache, cfg)
+	return NewReportService(rr, mu, ir, cache, cfg, log)
 }
 
 func today() time.Time {

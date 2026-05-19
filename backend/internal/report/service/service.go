@@ -5,6 +5,7 @@ import (
 	"inventory-movement-processing/common"
 	itemEntity "inventory-movement-processing/internal/item/entity"
 	reportEntity "inventory-movement-processing/internal/report/entity"
+	"inventory-movement-processing/pkg/logger"
 	"time"
 )
 
@@ -16,31 +17,33 @@ type reportRepository interface {
 	ListTopActiveItemsByDate(ctx context.Context, date time.Time, limit int) ([]*reportEntity.DailyItemSummary, error)
 }
 
-type movementUseCase interface {
+type movementService interface {
 	AggregateDailyItemSummaryFromMovement(
 		ctx context.Context,
 		date time.Time,
 	) ([]*reportEntity.DailyItemSummary, error)
 }
 
-type itemRepository interface {
+type itemService interface {
 	ListLowStockItems(ctx context.Context) ([]*itemEntity.Item, error)
 }
 
 type reportService struct {
 	reportRepository reportRepository
-	movementUseCase  movementUseCase
-	itemRepository   itemRepository
+	movementUseCase  movementService
+	itemRepository   itemService
 	cacheStore       common.CacheProvider
 	config           common.Config
+	logger           logger.Logger
 }
 
 func NewReportService(
 	reportRepository reportRepository,
-	movementUseCase movementUseCase,
-	itemRepository itemRepository,
+	movementUseCase movementService,
+	itemRepository itemService,
 	cacheStore common.CacheProvider,
 	config common.Config,
+	logger logger.Logger,
 ) *reportService {
 	return &reportService{
 		reportRepository: reportRepository,
@@ -48,5 +51,6 @@ func NewReportService(
 		itemRepository:   itemRepository,
 		cacheStore:       cacheStore,
 		config:           config,
+		logger:           logger,
 	}
 }

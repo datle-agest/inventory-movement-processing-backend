@@ -11,6 +11,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - imp_network
 
   adminer:
     image: adminer
@@ -20,6 +22,8 @@ services:
       - "8080:8080"
     depends_on:
       - postgres
+    networks:
+      - imp_network
 
   redis:
     image: redis:7
@@ -27,6 +31,8 @@ services:
     restart: always
     ports:
       - "6379:6379"
+    networks:
+      - imp_network
 
   backend:
     build:
@@ -49,10 +55,16 @@ services:
       REDIS_HOST: redis
 
       STOREKEEPER_API_KEY: 82b81a84c19b8d17e6c0a4b9a3553a4e
-      MANAGER_API_KEY: 0a04630fdcfebe605c3b3c9ece58b824 
+      MANAGER_API_KEY: 0a04630fdcfebe605c3b3c9ece58b824
 
     ports:
       - "3000:3000"
+    networks:
+      - imp_network
 
 volumes:
   postgres_data:
+
+networks:
+  imp_network:
+    driver: bridge
