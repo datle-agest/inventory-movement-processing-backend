@@ -107,14 +107,21 @@ func isDataStale(items []*entity.DailyItemSummary, date time.Time) bool {
 		return true
 	}
 
-	startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
-
 	first := items[0]
 	if first.UpdatedAt == nil {
 		return true
 	}
 
-	return first.UpdatedAt.Before(startOfDay)
+	now := time.Now()
+	isToday := now.Year() == date.Year() && now.Month() == date.Month() && now.Day() == date.Day()
+
+	if isToday {
+		startOfDay := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+		return first.UpdatedAt.Before(startOfDay)
+	} else {
+		startOfNextDay := time.Date(date.Year(), date.Month(), date.Day()+1, 0, 0, 0, 0, date.Location())
+		return first.UpdatedAt.Before(startOfNextDay)
+	}
 }
 
 func (s *reportService) buildResult(

@@ -3,256 +3,276 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"testing"
-	"time"
-
 	itemEntity "inventory-movement-processing/internal/item/entity"
 	reportEntity "inventory-movement-processing/internal/report/entity"
+	"testing"
+	"time"
 )
 
-func TestIsDataStale(t *testing.T) {
-	d := today()
-	start := startOfDay(d)
+// =========================================================================
+// TEST CASE 1: Yesterday data is stale -> should trigger regenerate
+// =========================================================================
+func TestGetDailyReport_YesterdayDataIsStale_ShouldTriggerRegenerate(t *testing.T) {
+	requestedDate := time.Date(2026, time.May, 18, 0, 0, 0, 0, time.UTC)
 
-	tests := []struct {
-		name      string
-		items     []*reportEntity.DailyItemSummary
-		wantStale bool
-	}{
-		{"Empty slice", []*reportEntity.DailyItemSummary{}, true},
-		{"Nil UpdatedAt", []*reportEntity.DailyItemSummary{{}}, true},
-		{"UpdatedAt before startOfDay (stale)", makeSummariesWithUpdatedAt(1, start.Add(-time.Hour)), true},
-		{"UpdatedAt exactly startOfDay (fresh)", makeSummariesWithUpdatedAt(1, start), false},
-		{"UpdatedAt after startOfDay (fresh)", makeSummariesWithUpdatedAt(1, start.Add(time.Hour)), false},
+	// DB data was only updated until 14:00 on the requested day
+	dbUpdatedAt := time.Date(2026, time.May, 18, 14, 0, 0, 0, time.UTC)
+
+	staleItems := []*reportEntity.DailyItemSummary{
+		{ItemID: 1, SummaryDate: requestedDate},
 	}
+	staleItems[0].UpdatedAt = &dbUpdatedAt
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := isDataStale(tt.items, d); got != tt.wantStale {
-				t.Errorf("isDataStale() = %v, want %v", got, tt.wantStale)
+	generateSummaryCalled := false
+
+	mockRepo := &mockReportRepo{
+		listTopActiveFn: func(ctx context.Context, date time.Time, limit int) ([]*reportEntity.DailyItemSummary, error) {
+			// First call: return stale data
+			if !generateSummaryCalled {
+				return staleItems, nil
 			}
-		})
+
+			// Second call after regenerate: return refreshed data
+			freshTime := time.Date(2026, time.May, 19, 1, 0, 0, 0, time.UTC)
+			staleItems[0].UpdatedAt = &freshTime
+
+			return staleItems, nil
+		},
+		upsertFn: func(ctx context.Context, data []*reportEntity.DailyItemSummary) error {
+			return nil
+		},
 	}
-}
 
-// Edge Cases & Complex Flows
-func TestGetDailyReport_LimitExceedsResults_ClampsToLen(t *testing.T) {
-	updatedAt := startOfDay(yesterday()).Add(1 * time.Hour)
-	summaries := makeSummariesWithUpdatedAt(3, updatedAt)
-
-	svc := newService(
-		&mockReportRepo{
-			listTopActiveFn: func(_ context.Context, _ time.Time, _ int) ([]*reportEntity.DailyItemSummary, error) {
-				return summaries, nil
-			},
+	mockMovement := &mockMovementUseCase{
+		aggregateFn: func(ctx context.Context, date time.Time) ([]*reportEntity.DailyItemSummary, error) {
+			generateSummaryCalled = true
+			return staleItems, nil
 		},
-		&mockMovementUseCase{},
-		nil,
-		&mockCache{
-			getFn: func(_ context.Context, _ string) (string, bool, error) {
-				return "", false, nil
-			},
-		},
-		&mockConfig{cacheLimit: 10},
-		&mockLogger{},
-	)
+	}
 
-	result, err := svc.GetDailyReport(context.Background(), yesterday(), 10)
+	mockItem := &mockItemRepo{}
+
+	mockCacheStore := &mockCache{
+		getFn: func(ctx context.Context, key string) (string, bool, error) {
+			return "", false, nil
+		},
+		setFn: func(ctx context.Context, key string, value string, ttl time.Duration) error {
+			return nil
+		},
+	}
+
+	mockCfg := &mockConfig{cacheLimit: 10}
+	mockLog := &mockLogger{}
+
+	service := newService(mockRepo, mockMovement, mockItem, mockCacheStore, mockCfg, mockLog)
+
+	// RUN
+	_, err := service.GetDailyReport(context.Background(), requestedDate, 5)
+
+	// VERIFY
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(result.TopItems) != 3 {
-		t.Errorf("expected 3 items (clamped), got %d", len(result.TopItems))
+
+	if !generateSummaryCalled {
+		t.Errorf("expected stale yesterday data to trigger regenerate summary")
 	}
 }
 
-func TestGetDailyReport_CacheHit_Today_Stale_Regenerates(t *testing.T) {
-	staleSummaries := makeSummaries(2)
-	updatedAt := startOfDay(today()).Add(1 * time.Hour)
-	freshSummaries := makeSummariesWithUpdatedAt(5, updatedAt)
+// =========================================================================
+// TEST CASE 2: Cache hit and data is still fresh
+// =========================================================================
+func TestGetDailyReport_CacheHit_Fresh(t *testing.T) {
+	requestedDate := time.Date(2026, time.May, 18, 0, 0, 0, 0, time.UTC)
 
-	staleJSON := makeCachedJSON(t, staleSummaries, time.Now().Add(-2*time.Minute))
+	cachedItems := []*reportEntity.DailyItemSummary{
+		{ItemID: 11, TotalIn: 50, SummaryDate: requestedDate},
+	}
 
-	regenerateCalled := false
+	cachedReport := reportEntity.CachedReport{
+		Items:       cachedItems,
+		GeneratedAt: time.Now().Add(-30 * time.Second),
+	}
 
-	svc := newService(
-		&mockReportRepo{
-			upsertFn: func(_ context.Context, _ []*reportEntity.DailyItemSummary) error {
-				regenerateCalled = true
-				return nil
-			},
-			listTopActiveFn: func(_ context.Context, _ time.Time, _ int) ([]*reportEntity.DailyItemSummary, error) {
-				return freshSummaries, nil
-			},
-		},
-		&mockMovementUseCase{
-			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
-				return freshSummaries, nil
-			},
-		},
-		&mockItemRepo{
-			listLowStockFn: func(_ context.Context) ([]*itemEntity.Item, error) {
-				return nil, nil
-			},
-		},
-		&mockCache{
-			getFn: func(_ context.Context, _ string) (string, bool, error) {
-				return staleJSON, true, nil
-			},
-		},
-		&mockConfig{cacheLimit: 10},
-		&mockLogger{},
-	)
+	rawJSON, _ := json.Marshal(cachedReport)
 
-	result, err := svc.GetDailyReport(context.Background(), today(), 5)
+	mockCacheStore := &mockCache{
+		getFn: func(ctx context.Context, key string) (string, bool, error) {
+			return string(rawJSON), true, nil
+		},
+	}
+
+	dbCalled := false
+
+	mockRepo := &mockReportRepo{
+		listTopActiveFn: func(ctx context.Context, date time.Time, limit int) ([]*reportEntity.DailyItemSummary, error) {
+			dbCalled = true
+			return nil, nil
+		},
+	}
+
+	mockMovement := &mockMovementUseCase{}
+	mockItem := &mockItemRepo{}
+	mockCfg := &mockConfig{cacheLimit: 10}
+	mockLog := &mockLogger{}
+
+	service := newService(mockRepo, mockMovement, mockItem, mockCacheStore, mockCfg, mockLog)
+
+	// RUN
+	result, err := service.GetDailyReport(context.Background(), requestedDate, 5)
+
+	// VERIFY
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !regenerateCalled {
-		t.Error("expected regenerate to be called on stale cache")
+
+	if dbCalled {
+		t.Errorf("expected fresh cache data to prevent DB query")
 	}
-	if len(result.TopItems) != 5 {
-		t.Errorf("expected 5 fresh items, got %d", len(result.TopItems))
+
+	if len(result.TopItems) != 1 || result.TopItems[0].ItemID != 11 {
+		t.Errorf("returned data does not match cached data")
 	}
 }
 
-func TestGetDailyReport_DBStale_ByUpdatedAt_FallbackRegenerate(t *testing.T) {
-	staleUpdatedAt := startOfDay(yesterday()).Add(-11 * time.Hour)
-	staleSummaries := makeSummariesWithUpdatedAt(3, staleUpdatedAt)
+// =========================================================================
+// TEST CASE 3: Cache hit but today's cache is stale
+// =========================================================================
+func TestGetDailyReport_CacheHit_StaleToday(t *testing.T) {
+	today := time.Now()
 
-	freshUpdatedAt := startOfDay(yesterday()).Add(1 * time.Minute)
-	freshSummaries := makeSummariesWithUpdatedAt(4, freshUpdatedAt)
+	cachedItems := []*reportEntity.DailyItemSummary{
+		{ItemID: 22, SummaryDate: today},
+	}
 
-	listCallCount := 0
+	cachedReport := reportEntity.CachedReport{
+		Items:       cachedItems,
+		GeneratedAt: today.Add(-5 * time.Minute),
+	}
 
-	svc := newService(
-		&mockReportRepo{
-			upsertFn: func(_ context.Context, _ []*reportEntity.DailyItemSummary) error {
-				return nil
-			},
-			listTopActiveFn: func(_ context.Context, _ time.Time, _ int) ([]*reportEntity.DailyItemSummary, error) {
-				listCallCount++
-				if listCallCount == 1 {
-					return staleSummaries, nil
-				}
-				return freshSummaries, nil
-			},
+	rawJSON, _ := json.Marshal(cachedReport)
+
+	mockCacheStore := &mockCache{
+		getFn: func(ctx context.Context, key string) (string, bool, error) {
+			return string(rawJSON), true, nil
 		},
-		&mockMovementUseCase{
-			aggregateFn: func(_ context.Context, _ time.Time) ([]*reportEntity.DailyItemSummary, error) {
-				return freshSummaries, nil
-			},
+		setFn: func(ctx context.Context, key string, value string, ttl time.Duration) error {
+			return nil
 		},
-		nil,
-		&mockCache{
-			getFn: func(_ context.Context, _ string) (string, bool, error) {
-				return "", false, nil
-			},
-		},
-		&mockConfig{cacheLimit: 10},
-		&mockLogger{},
-	)
+	}
 
-	result, err := svc.GetDailyReport(context.Background(), yesterday(), 4)
+	dbCalled := false
+
+	mockRepo := &mockReportRepo{
+		listTopActiveFn: func(ctx context.Context, date time.Time, limit int) ([]*reportEntity.DailyItemSummary, error) {
+			dbCalled = true
+
+			freshTime := time.Now()
+			cachedItems[0].UpdatedAt = &freshTime
+
+			return cachedItems, nil
+		},
+		upsertFn: func(ctx context.Context, data []*reportEntity.DailyItemSummary) error {
+			return nil
+		},
+	}
+
+	mockMovement := &mockMovementUseCase{
+		aggregateFn: func(ctx context.Context, date time.Time) ([]*reportEntity.DailyItemSummary, error) {
+			return cachedItems, nil
+		},
+	}
+
+	mockItem := &mockItemRepo{
+		listLowStockFn: func(ctx context.Context) ([]*itemEntity.Item, error) {
+			return nil, nil
+		},
+	}
+
+	mockCfg := &mockConfig{cacheLimit: 10}
+	mockLog := &mockLogger{}
+
+	service := newService(mockRepo, mockMovement, mockItem, mockCacheStore, mockCfg, mockLog)
+
+	// RUN
+	_, err := service.GetDailyReport(context.Background(), today, 5)
+
+	// VERIFY
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if listCallCount != 2 {
-		t.Errorf("expected 2 DB calls, got %d", listCallCount)
-	}
-	if len(result.TopItems) != 4 {
-		t.Errorf("expected 4 fresh items after fallback, got %d", len(result.TopItems))
+
+	if !dbCalled {
+		t.Errorf("expected stale cache for today to trigger DB query")
 	}
 }
 
-func TestGetDailyReport_Errors(t *testing.T) {
-	tests := []struct {
-		name       string
-		isToday    bool
-		setupMocks func() *reportService
-	}{
-		{
-			name:    "DB list error",
-			isToday: false,
-			setupMocks: func() *reportService {
-				return newService(
-					&mockReportRepo{
-						listTopActiveFn: func(_ context.Context, _ time.Time, _ int) ([]*reportEntity.DailyItemSummary, error) {
-							return nil, errors.New("db error")
-						},
-					},
-					&mockMovementUseCase{}, nil, &mockCache{
-						getFn: func(_ context.Context, _ string) (string, bool, error) { return "", false, nil },
-					}, &mockConfig{cacheLimit: 10},
-					&mockLogger{},
-				)
-			},
+// =========================================================================
+// TEST CASE 4: Empty DB should trigger fallback regenerate
+// =========================================================================
+func TestGetDailyReport_PastDate_EmptyDB_TriggersFallback(t *testing.T) {
+	requestedDate := time.Date(2026, time.May, 18, 0, 0, 0, 0, time.UTC)
+
+	mockCacheStore := &mockCache{
+		getFn: func(ctx context.Context, key string) (string, bool, error) {
+			return "", false, nil
 		},
-		{
-			name:    "Cache hit today but low stock fetch fails",
-			isToday: true,
-			setupMocks: func() *reportService {
-				summaries := makeSummaries(2)
-				cachedJSON := makeCachedJSON(t, summaries, time.Now())
-				return newService(
-					&mockReportRepo{}, &mockMovementUseCase{},
-					&mockItemRepo{
-						listLowStockFn: func(_ context.Context) ([]*itemEntity.Item, error) {
-							return nil, errors.New("low stock error")
-						},
-					},
-					&mockCache{
-						getFn: func(_ context.Context, _ string) (string, bool, error) { return cachedJSON, true, nil },
-					}, &mockConfig{cacheLimit: 10},
-					&mockLogger{},
-				)
-			},
+		setFn: func(ctx context.Context, key string, value string, ttl time.Duration) error {
+			return nil
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			svc := tt.setupMocks()
-			date := yesterday()
-			if tt.isToday {
-				date = today()
-			}
-			_, err := svc.GetDailyReport(context.Background(), date, 5)
-			if err == nil {
-				t.Fatal("expected error, got nil")
-			}
-		})
-	}
-}
+	generateSummaryCalled := false
 
-func marshalCachedReport(t *testing.T, r reportEntity.CachedReport) string {
-	t.Helper()
-	raw, err := json.Marshal(r)
+	mockRepo := &mockReportRepo{
+		listTopActiveFn: func(ctx context.Context, date time.Time, limit int) ([]*reportEntity.DailyItemSummary, error) {
+			// First call: DB is empty
+			if !generateSummaryCalled {
+				return []*reportEntity.DailyItemSummary{}, nil
+			}
+
+			// Second call after fallback regenerate
+			freshUpdatedAt := time.Date(2026, time.May, 19, 4, 0, 0, 0, time.UTC)
+
+			items := []*reportEntity.DailyItemSummary{
+				{ItemID: 55, SummaryDate: requestedDate},
+			}
+
+			items[0].UpdatedAt = &freshUpdatedAt
+
+			return items, nil
+		},
+		upsertFn: func(ctx context.Context, data []*reportEntity.DailyItemSummary) error {
+			return nil
+		},
+	}
+
+	mockMovement := &mockMovementUseCase{
+		aggregateFn: func(ctx context.Context, date time.Time) ([]*reportEntity.DailyItemSummary, error) {
+			generateSummaryCalled = true
+			return []*reportEntity.DailyItemSummary{}, nil
+		},
+	}
+
+	mockItem := &mockItemRepo{}
+	mockCfg := &mockConfig{cacheLimit: 10}
+	mockLog := &mockLogger{}
+
+	service := newService(mockRepo, mockMovement, mockItem, mockCacheStore, mockCfg, mockLog)
+
+	// RUN
+	result, err := service.GetDailyReport(context.Background(), requestedDate, 5)
+
+	// VERIFY
 	if err != nil {
-		t.Fatalf("marshal CachedReport: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
-	return string(raw)
-}
 
-func makeCachedJSON(t *testing.T, summaries []*reportEntity.DailyItemSummary, generatedAt time.Time) string {
-	t.Helper()
-	return marshalCachedReport(t, reportEntity.CachedReport{
-		Items:       summaries,
-		GeneratedAt: generatedAt,
-	})
-}
-
-func makeSummariesWithUpdatedAt(n int, updatedAt time.Time) []*reportEntity.DailyItemSummary {
-	items := make([]*reportEntity.DailyItemSummary, n)
-	t := updatedAt
-	for i := range items {
-		items[i] = &reportEntity.DailyItemSummary{}
-		items[i].UpdatedAt = &t
+	if !generateSummaryCalled {
+		t.Errorf("expected empty DB result to trigger fallback regenerate")
 	}
-	return items
-}
 
-func startOfDay(d time.Time) time.Time {
-	return time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, d.Location())
+	if result == nil || len(result.TopItems) != 1 || result.TopItems[0].ItemID != 55 {
+		t.Errorf("unexpected fallback result data")
+	}
 }

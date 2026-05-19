@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
-	"testing"
 	"time"
 
 	itemEntity "inventory-movement-processing/internal/item/entity"
@@ -107,30 +105,4 @@ func newService(
 	log logger.Logger,
 ) *reportService {
 	return NewReportService(rr, mu, ir, cache, cfg, log)
-}
-
-func today() time.Time {
-	now := time.Now()
-	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-}
-
-func yesterday() time.Time {
-	return today().AddDate(0, 0, -1)
-}
-
-func makeSummaries(n int) []*reportEntity.DailyItemSummary {
-	items := make([]*reportEntity.DailyItemSummary, n)
-	for i := range items {
-		items[i] = &reportEntity.DailyItemSummary{}
-	}
-	return items
-}
-
-func marshalSummaries(t *testing.T, summaries []*reportEntity.DailyItemSummary) string {
-	t.Helper()
-	raw, err := json.Marshal(summaries)
-	if err != nil {
-		t.Fatalf("marshal summaries: %v", err)
-	}
-	return string(raw)
 }
