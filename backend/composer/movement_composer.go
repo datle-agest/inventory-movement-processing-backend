@@ -31,7 +31,7 @@ func ComposeMovementService(serviceCtx sctx.ServiceContext) movementHandler {
 	itemRepo := itemPostgres.NewItemRepository(db)
 	itemSv := itemService.NewItemService(itemRepo, logger)
 	txManager := gormc.NewGormTxManager(db)
-	uc := movementService.NewMovementService(movementRepo, itemSv, txManager, workerPool)
+	uc := movementService.NewMovementService(movementRepo, itemSv, txManager, workerPool, logger)
 
 	handler := movementHttp.NewHandler(uc)
 

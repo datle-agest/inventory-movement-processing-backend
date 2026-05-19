@@ -3,11 +3,11 @@ package service
 import (
 	"context"
 	"inventory-movement-processing/common"
-	itemEntity "inventory-movement-processing/internal/item/entity"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
 	reportEntity "inventory-movement-processing/internal/report/entity"
 	"inventory-movement-processing/pkg/components/workerc"
 	"inventory-movement-processing/pkg/core"
+	"inventory-movement-processing/pkg/logger"
 	"mime/multipart"
 	"time"
 )
@@ -19,8 +19,7 @@ type movementRepository interface {
 }
 
 type itemService interface {
-	GetItemForUpdate(ctx context.Context, id int32) (*itemEntity.Item, error)
-	UpdateStock(ctx context.Context, itemID int32, quantity int32) error
+	AdjustStock(ctx context.Context, itemID int32, quantityChange int32) error
 }
 
 type MovementService interface {
@@ -35,6 +34,7 @@ type service struct {
 	itemService  itemService
 	txManager    common.TxManager
 	workerPool   workerc.WorkerPool
+	logger       logger.Logger
 }
 
 func NewMovementService(
@@ -42,11 +42,13 @@ func NewMovementService(
 	itemService itemService,
 	txManager common.TxManager,
 	workerPool workerc.WorkerPool,
+	logger logger.Logger,
 ) MovementService {
 	return &service{
 		movementRepo: movementRepo,
 		itemService:  itemService,
 		txManager:    txManager,
 		workerPool:   workerPool,
+		logger:       logger,
 	}
 }
