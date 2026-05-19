@@ -10,15 +10,12 @@ import (
 
 func (r *movementRepository) AggregateDailyItemSummaryFromMovement(
 	ctx context.Context,
-	date time.Time,
+	start time.Time,
+	end time.Time,
 ) ([]*reportEntity.DailyItemSummary, error) {
 
 	var results []*reportEntity.DailyItemSummary
 	var tmp entity.Movement
-
-	start := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
-	end := start.Add(24 * time.Hour)
-
 	err := r.db.WithContext(ctx).
 		Table(tmp.TableName()).
 		Select(`
@@ -31,11 +28,9 @@ func (r *movementRepository) AggregateDailyItemSummaryFromMovement(
 		Where("created_at >= ? AND created_at < ?", start, end).
 		Group("item_id, DATE(created_at)").
 		Scan(&results).Error
-
 	if err != nil {
 		return nil, err
 	}
-
 	return results, nil
 }
 

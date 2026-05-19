@@ -3,15 +3,18 @@ package service
 import (
 	"context"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
+	reportEntity "inventory-movement-processing/internal/report/entity"
 	"inventory-movement-processing/pkg/components/workerc"
 	"inventory-movement-processing/pkg/core"
+	"time"
 )
 
 // --- movementRepository mock ---
 type mockMovementRepo struct {
-	getMovementsByItemIDFn func(ctx context.Context, itemId int, paging *core.Pagination) ([]*movementEntity.Movement, error)
-	createFn               func(ctx context.Context, movement *movementEntity.Movement) error
-	processMovementFn      func(ctx context.Context, m *movementEntity.Movement) error
+	getMovementsByItemIDFn                  func(ctx context.Context, itemId int, paging *core.Pagination) ([]*movementEntity.Movement, error)
+	createFn                                func(ctx context.Context, movement *movementEntity.Movement) error
+	processMovementFn                       func(ctx context.Context, m *movementEntity.Movement) error
+	aggregateDailyItemSummaryFromMovementFn func(ctx context.Context, start time.Time, end time.Time) ([]*reportEntity.DailyItemSummary, error)
 }
 
 func (m *mockMovementRepo) GetMovementsByItemID(ctx context.Context, itemId int, paging *core.Pagination) ([]*movementEntity.Movement, error) {
@@ -33,6 +36,13 @@ func (m *mockMovementRepo) ProcessMovement(ctx context.Context, movement *moveme
 		return m.processMovementFn(ctx, movement)
 	}
 	return nil
+}
+
+func (m *mockMovementRepo) AggregateDailyItemSummaryFromMovement(ctx context.Context, start time.Time, end time.Time) ([]*reportEntity.DailyItemSummary, error) {
+	if m.aggregateDailyItemSummaryFromMovementFn != nil {
+		return m.aggregateDailyItemSummaryFromMovementFn(ctx, start, end)
+	}
+	return nil, nil
 }
 
 // --- workerPool mock ---
