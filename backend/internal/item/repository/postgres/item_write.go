@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"inventory-movement-processing/internal/item/entity"
+	"inventory-movement-processing/pkg/components/gormc"
 
 	"gorm.io/gorm"
 )
@@ -30,11 +31,19 @@ func (repo *repository) DeleteItem(ctx context.Context, id int) error {
 }
 
 // UpdateStock - Cập nhật stock (IN/OUT/ADJUST)
-func (repo *repository) UpdateStock(ctx context.Context, itemID int32, quantity int32) error {
-	if err := repo.db.WithContext(ctx).Model(&entity.Item{}).
+func (repo *repository) UpdateStock(ctx context.Context, itemID int32, newStock int32) error {
+	db := gormc.GetDB(ctx, repo.db)
+	result := db.WithContext(ctx).
+		Model(&entity.Item{}).
 		Where("id = ?", itemID).
-		Update("current_stock", gorm.Expr("current_stock + ?", quantity)).Error; err != nil {
-		return err
+		Update("current_stock", newStock)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return entity.ErrItemNotFound
 	}
 	return nil
 }

@@ -18,8 +18,6 @@ func TestWorkerPool_Submit(t *testing.T) {
 		})
 	}
 
-	pool.Wait()
-
 	pool.Stop()
 	if count != 10 {
 		t.Errorf("expected 10 jobs done, got %d", count)
