@@ -14,7 +14,7 @@ func (s *service) CreateItem(ctx context.Context, item entity.Item) (*entity.Ite
 
 	createdItem, err := s.repo.CreateItem(ctx, item)
 	if err != nil {
-		return nil, common.ErrInternal("cannot create item")
+		return nil, common.ErrInternal(err.Error())
 	}
 
 	return createdItem, nil

@@ -6,6 +6,8 @@ import (
 	"inventory-movement-processing/common"
 	itemEntity "inventory-movement-processing/internal/item/entity"
 	"inventory-movement-processing/internal/movement/entity"
+
+	"gorm.io/gorm"
 )
 
 func (s *service) ProcessOne(ctx context.Context, m *entity.Movement) (entity.ProcessStatus, error) {
@@ -18,7 +20,7 @@ func (s *service) ProcessOne(ctx context.Context, m *entity.Movement) (entity.Pr
 	err := s.txManager.WithTx(ctx, func(txCtx context.Context) error {
 
 		// - Lock và lấy Item
-		item, err := s.itemRepo.GetItemForUpdate(txCtx, m.ItemID)
+		item, err := s.itemService.GetItemForUpdate(txCtx, m.ItemID)
 		if err != nil {
 			return err
 		}
@@ -30,21 +32,26 @@ func (s *service) ProcessOne(ctx context.Context, m *entity.Movement) (entity.Pr
 		}
 
 		// - Cập nhật stock
-		if err := s.itemRepo.UpdateStock(txCtx, m.ItemID, newStock); err != nil {
+		if err := s.itemService.UpdateStock(txCtx, m.ItemID, newStock); err != nil {
 			return err
 		}
 
 		// - Tạo movement record
 		if err := s.movementRepo.Create(txCtx, m); err != nil {
-			return err
+			if errors.Is(err, gorm.ErrDuplicatedKey) {
+				return itemEntity.ErrDuplicateMovement
+			}
+			return common.ErrInternal("cannot create movement")
 		}
 
 		return nil
 	})
 
-	// 3 Map error sang ProcessStatus
 	if err != nil {
-		return s.mapErrorToStatus(err)
+		if errors.Is(err, itemEntity.ErrDuplicateMovement) {
+			return entity.StatusDuplicate, err
+		}
+		return entity.StatusRejected, err
 	}
 
 	return entity.StatusAccepted, nil
@@ -73,21 +80,4 @@ func (s *service) calculateNewStock(currentStock int32, m *entity.Movement) (int
 		return 0, itemEntity.ErrInsufficientStock
 	}
 	return newStock, nil
-}
-
-// mapErrorToStatus - Map error sang ProcessStatus
-func (s *service) mapErrorToStatus(err error) (entity.ProcessStatus, error) {
-	switch {
-	case errors.Is(err, itemEntity.ErrItemNotFound):
-		return entity.StatusRejected, common.ErrNotFound("inventory item not found")
-
-	case errors.Is(err, itemEntity.ErrInsufficientStock):
-		return entity.StatusRejected, common.ErrBadRequest("insufficient stock")
-
-	case errors.Is(err, itemEntity.ErrDuplicateMovement):
-		return entity.StatusDuplicate, common.ErrConflict("duplicate external_id")
-
-	default:
-		return entity.StatusRejected, common.ErrInternal("cannot process movement")
-	}
 }

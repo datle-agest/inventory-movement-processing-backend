@@ -2,6 +2,7 @@ package composer
 
 import (
 	"inventory-movement-processing/common"
+	itemService "inventory-movement-processing/internal/item/service"
 	"inventory-movement-processing/pkg/components/gormc"
 	"inventory-movement-processing/pkg/components/workerc"
 
@@ -27,8 +28,9 @@ func ComposeMovementService(serviceCtx sctx.ServiceContext) movementHandler {
 
 	movementRepo := movementPostgres.NewMovementRepository(db)
 	itemRepo := itemPostgres.NewItemRepository(db)
+	itemSv := itemService.NewItemService(itemRepo)
 	txManager := gormc.NewGormTxManager(db)
-	uc := movementService.NewMovementService(movementRepo, itemRepo, txManager, workerPool)
+	uc := movementService.NewMovementService(movementRepo, itemSv, txManager, workerPool)
 
 	handler := movementHttp.NewHandler(uc)
 
