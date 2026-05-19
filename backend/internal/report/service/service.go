@@ -16,7 +16,7 @@ type reportRepository interface {
 	ListTopActiveItemsByDate(ctx context.Context, date time.Time, limit int) ([]*reportEntity.DailyItemSummary, error)
 }
 
-type movementRepository interface {
+type movementUseCase interface {
 	AggregateDailyItemSummaryFromMovement(
 		ctx context.Context,
 		date time.Time,
@@ -28,25 +28,25 @@ type itemRepository interface {
 }
 
 type reportService struct {
-	reportRepository   reportRepository
-	movementRepository movementRepository
-	itemRepository     itemRepository
-	cacheStore         common.CacheProvider
-	config             common.Config
+	reportRepository reportRepository
+	movementUseCase  movementUseCase
+	itemRepository   itemRepository
+	cacheStore       common.CacheProvider
+	config           common.Config
 }
 
 func NewReportService(
 	reportRepository reportRepository,
-	movementRepository movementRepository,
+	movementUseCase movementUseCase,
 	itemRepository itemRepository,
 	cacheStore common.CacheProvider,
 	config common.Config,
 ) *reportService {
 	return &reportService{
-		reportRepository:   reportRepository,
-		movementRepository: movementRepository,
-		itemRepository:     itemRepository,
-		cacheStore:         cacheStore,
-		config:             config,
+		reportRepository: reportRepository,
+		movementUseCase:  movementUseCase,
+		itemRepository:   itemRepository,
+		cacheStore:       cacheStore,
+		config:           config,
 	}
 }

@@ -10,7 +10,7 @@ func (s *reportService) GenerateDailySummary(
 	date time.Time,
 ) error {
 
-	summaries, err := s.movementRepository.
+	summaries, err := s.movementUseCase.
 		AggregateDailyItemSummaryFromMovement(ctx, date)
 	if err != nil {
 		return err
