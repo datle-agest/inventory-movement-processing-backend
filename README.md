@@ -47,7 +47,7 @@ This system is built specifically to address these issues, guaranteeing **serial
 - **No login flow** — two static API keys (`STOREKEEPER`, `MANAGER`) are configured in `.env`; no registration or dynamic key issuance.
 - **Scanner flow** — scanners don't call the API per scan. Instead, staff collects scanned items into a CSV and submits it via `POST /inventory-movements/import`.
 - **CSV format** — files must have a valid header row and use comma as delimiter. Max size: 5MB or 10,000 rows. Any structural mismatch rejects the entire batch (fail-fast).
-- **Synchronous import** — clients wait for a direct response (< 30s) with accepted, rejected, and duplicate counts. Failed rows are returned as a downloadable error file.
+- **Synchronous import** — clients wait for a direct response (~1 second) with accepted, rejected, and duplicate counts. Failed rows are returned as a downloadable error file.
 - **Movement values** — `IN` and `OUT` are always positive; `ADJUST` can be positive or negative.
 - **Idempotency via `external_id`** — each CSV row must carry a unique scanner-generated ID. Duplicates are skipped and flagged, not rejected as errors.
 - **Master data required** — all `item_id` values must exist before import. Unknown IDs are treated as row-level errors; no auto-creation.
