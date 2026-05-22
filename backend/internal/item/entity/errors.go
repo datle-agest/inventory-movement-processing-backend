@@ -12,4 +12,5 @@ var (
 	ErrItemNotFound      = errors.New("item not found")
 	ErrInsufficientStock = errors.New("insufficient stock balance")
 	ErrDuplicateMovement = errors.New("movement with this external_id already exists")
+	ErrItemDuplicated    = errors.New("item with this SKU already exists")
 )

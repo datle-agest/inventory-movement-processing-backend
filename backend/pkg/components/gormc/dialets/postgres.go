@@ -7,5 +7,7 @@ import (
 
 // host=localhost user=postgres password=12345 dbname=mydb port=5432 sslmode=disable
 func PostgresDB(dsn string) (*gorm.DB, error) {
-	return gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	return gorm.Open(postgres.Open(dsn), &gorm.Config{
+		TranslateError: true,
+	})
 }
