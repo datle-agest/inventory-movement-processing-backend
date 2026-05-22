@@ -27,7 +27,7 @@ services:
 
   redis:
     image: redis:7
-    container_name: redis
+    container_name: inventory-redis
     restart: always
     ports:
       - "6379:6379"

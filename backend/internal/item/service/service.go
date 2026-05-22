@@ -21,8 +21,7 @@ type ItemService interface {
 	ListItem(ctx context.Context, filter *entity.ItemFilter, paging *core.Pagination) ([]entity.Item, error)
 	CreateItem(ctx context.Context, item entity.Item) (*entity.Item, error)
 	ListLowStockItems(ctx context.Context) ([]*entity.Item, error)
-	UpdateStock(ctx context.Context, itemID int32, newStock int32) error
-	GetItemForUpdate(ctx context.Context, id int32) (*entity.Item, error)
+	AdjustStock(ctx context.Context, itemID int32, quantityChange int32) error
 }
 
 type service struct {
@@ -30,9 +29,9 @@ type service struct {
 	logger logger.Logger
 }
 
-func NewItemService(repo itemRepository, logger logger.Logger,) ItemService {
+func NewItemService(repo itemRepository, logger logger.Logger) ItemService {
 	return &service{
-		repo: repo,
+		repo:   repo,
 		logger: logger,
 	}
 }

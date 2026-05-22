@@ -23,7 +23,7 @@ This system is built specifically to address these issues, guaranteeing **serial
 ##  Table of Contents
 - [Key Features](#-key-features)
 - [Assumptions](#-assumptions)
-- [ Architectural Architecture](#%EF%B8%8F-architectural-architecture)
+- [Architecture](#%EF%B8%8F-architectural-architecture)
 - [Main Flow](#-high-throughput-concurrency-model)
 - [ Project Directory Structure](#-project-directory-structure)
 - [ Security & Role-Based Authorization](#%EF%B8%8F-security--role-based-authorization)
@@ -47,7 +47,7 @@ This system is built specifically to address these issues, guaranteeing **serial
 - **No login flow** — two static API keys (`STOREKEEPER`, `MANAGER`) are configured in `.env`; no registration or dynamic key issuance.
 - **Scanner flow** — scanners don't call the API per scan. Instead, staff collects scanned items into a CSV and submits it via `POST /inventory-movements/import`.
 - **CSV format** — files must have a valid header row and use comma as delimiter. Max size: 5MB or 10,000 rows. Any structural mismatch rejects the entire batch (fail-fast).
-- **Synchronous import** — clients wait for a direct response (< 30s) with accepted, rejected, and duplicate counts. Failed rows are returned as a downloadable error file.
+- **Synchronous import** — clients wait for a direct response (~1 second) with accepted, rejected, and duplicate counts. Failed rows are returned as a downloadable error file.
 - **Movement values** — `IN` and `OUT` are always positive; `ADJUST` can be positive or negative.
 - **Idempotency via `external_id`** — each CSV row must carry a unique scanner-generated ID. Duplicates are skipped and flagged, not rejected as errors.
 - **Master data required** — all `item_id` values must exist before import. Unknown IDs are treated as row-level errors; no auto-creation.
@@ -57,7 +57,7 @@ This system is built specifically to address these issues, guaranteeing **serial
 
 ## Architecture
 <p align="center">
-  <img width="4321" height="2184" alt="image" src="https://github.com/user-attachments/assets/589df82b-3622-4d87-b401-add5c8548d2b" />
+   <img width="1517" height="661" alt="image" src="https://github.com/user-attachments/assets/86ced2ed-ec8f-43f8-adb4-cc3ec5160428" />
 </p>
 
 ## Main Flow
@@ -65,14 +65,14 @@ This system is built specifically to address these issues, guaranteeing **serial
 High-level workflow of the concurrent batch import engine, showing CSV parsing, item-based worker pool parallelization, and GORM database transaction locking with scanner ID idempotency:
 
 <p align="center">
-  <img width="1740" height="1373" alt="image" src="https://github.com/user-attachments/assets/46d08d61-f7e1-4b37-9362-0ada63c5d553" />
+  <img width="930" height="590" alt="image" src="https://github.com/user-attachments/assets/8e25b3c0-4e85-4ce4-b433-6c69ecf154f9" />
 </p>
 
 ### 📊 2. Report ETL Flow (ETL & Redis Caching)
 High-level workflow of the daily aggregation service, highlighting the Redis caching strategy, database fallback query, and real-time low-stock alert merges:
 
 <p align="center">
-  <img width="626" height="1244" alt="image" src="https://github.com/user-attachments/assets/6c38892c-0759-448f-ad3a-7a2bc135e246" />
+  <img width="1175" height="409" alt="image" src="https://github.com/user-attachments/assets/485c305a-1905-4365-9ecb-292452090df4" />
 </p>
 
 ## Project Directory Structure

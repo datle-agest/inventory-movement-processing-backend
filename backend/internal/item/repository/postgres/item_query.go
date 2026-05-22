@@ -2,11 +2,13 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"inventory-movement-processing/internal/item/entity"
 	itemEntity "inventory-movement-processing/internal/item/entity"
 	"inventory-movement-processing/pkg/components/gormc"
 	"inventory-movement-processing/pkg/core"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -61,9 +63,11 @@ func (repo *repository) GetItem(ctx context.Context, id int32) (*itemEntity.Item
 	err := repo.db.WithContext(ctx).First(&item, id).Error
 
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, entity.ErrItemNotFound
+		}
 		return nil, err
 	}
-
 	return &item, nil
 }
 
@@ -78,6 +82,9 @@ func (repo *repository) GetItemForUpdate(ctx context.Context, id int32) (*itemEn
 		First(&item, id).Error
 
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, entity.ErrItemNotFound
+		}
 		return nil, err
 	}
 

@@ -30,7 +30,7 @@ func ComposeReportService(serviceCtx sctx.ServiceContext) reportHandler {
 	itemRepo := itemRepository.NewItemRepository(db)
 
 	itemSv := itemService.NewItemService(itemRepo, logger)
-	movementSv := movementService.NewMovementService(movementRepo, itemSv, nil, nil)
+	movementSv := movementService.NewMovementService(movementRepo, itemSv, nil, nil, logger)
 
 	reportSv := service.NewReportService(reportRepo, movementSv, itemSv, redisComp, configComp, logger)
 
