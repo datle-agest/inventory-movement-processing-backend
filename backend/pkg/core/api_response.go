@@ -3,8 +3,8 @@ package core
 import "net/http"
 
 type APIResponse struct {
-	Code       int         `json:"code"`
-	Message    string      `json:"message,omitempty"`
+	Code       int         `json:"code" example:"200"`
+	Message    string      `json:"message,omitempty" example:"success"`
 	Result     interface{} `json:"result,omitempty"`
 	Pagination *Pagination `json:"pagination,omitempty"`
 }

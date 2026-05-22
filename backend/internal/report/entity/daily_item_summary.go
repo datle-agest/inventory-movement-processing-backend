@@ -9,15 +9,12 @@ import (
 
 type DailyItemSummary struct {
 	core.SQLModel
-
-	SummaryDate time.Time `gorm:"column:summary_date;type:date;not null;uniqueIndex:idx_item_summary_date"`
-	ItemID      int32     `gorm:"column:item_id;not null;uniqueIndex:idx_item_summary_date"`
-
-	Item *itemEntity.Item `gorm:"foreignKey:ItemID;references:ID"`
-
-	TotalIn     int32 `gorm:"column:total_in;not null;default:0"`
-	TotalOut    int32 `gorm:"column:total_out;not null;default:0"`
-	TotalAdjust int32 `gorm:"column:total_adjust;not null;default:0"`
+	SummaryDate time.Time        `json:"summary_date" gorm:"column:summary_date;type:date;not null;uniqueIndex:idx_item_summary_date" example:"2026-05-22T00:00:00Z"`
+	ItemID      int32            `json:"item_id"      gorm:"column:item_id;not null;uniqueIndex:idx_item_summary_date" example:"1"`
+	Item        *itemEntity.Item `json:"item,omitempty" gorm:"foreignKey:ItemID;references:ID" swaggerignore:"true"`
+	TotalIn     int32            `json:"total_in"     gorm:"column:total_in;not null;default:0" example:"100"`
+	TotalOut    int32            `json:"total_out"    gorm:"column:total_out;not null;default:0" example:"40"`
+	TotalAdjust int32            `json:"total_adjust" gorm:"column:total_adjust;not null;default:0" example:"10"`
 }
 
 func (DailyItemSummary) TableName() string {
