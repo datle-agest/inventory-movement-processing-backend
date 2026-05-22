@@ -12,5 +12,5 @@ type CachedReport struct {
 	// 1. Graceful Degradation: If the DB is down, we can fallback to serving slightly stale data instead of returning a 500 error.
 	// 2. Cache Stampede Prevention: Allows implementing the Stale-While-Revalidate pattern when multiple requests hit an expired cache.
 	// 3. Observability: Provides exact snapshot timing for debugging purposes.
-	GeneratedAt time.Time `json:"generated_at"`
+	GeneratedAt time.Time `json:"generated_at" example:"2026-05-22T08:00:00Z"`
 }

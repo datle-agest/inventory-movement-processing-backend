@@ -18,10 +18,10 @@ import (
 // @Accept multipart/form-data
 // @Produce json
 // @Param file formData file true "CSV file to import (required, max size: 5MB)"
-// @Success 200 {object} core.APIResponse{result=service.ImportBatchResult} "Successful batch processing summary"
-// @Failure 400 {object} core.APIResponse "Bad Request - Missing file, empty file, invalid format, or malformed CSV header"
-// @Failure 409 {object} core.APIResponse "Conflict - Duplicate transaction detected"
-// @Failure 500 {object} core.APIResponse "Internal Server Error - Failed to read/process file"
+// @Success 200 {object} core.APIResponse{result=entity.ImportBatchResult}
+// @Failure 400 {object} core.ErrResponseBadRequest
+// @Failure 409 {object} core.ErrResponseConflict
+// @Failure 500 {object} core.ErrResponseInternal
 // @Router /v1/inventory-movements/import [post]
 // @Security BearerAuth
 func (h *Handler) ImportBatch() gin.HandlerFunc {

@@ -3,66 +3,223 @@ definitions:
   core.APIResponse:
     properties:
       code:
+        example: 200
         type: integer
       message:
+        example: success
         type: string
       pagination:
         $ref: '#/definitions/core.Pagination'
       result: {}
     type: object
+  core.ErrResponseBadRequest:
+    properties:
+      code:
+        example: 400
+        type: integer
+      message:
+        example: invalid request
+        type: string
+    type: object
+  core.ErrResponseConflict:
+    properties:
+      code:
+        example: 409
+        type: integer
+      message:
+        example: duplicate transaction detected
+        type: string
+    type: object
+  core.ErrResponseInternal:
+    properties:
+      code:
+        example: 500
+        type: integer
+      message:
+        example: internal server error
+        type: string
+    type: object
+  core.ErrResponseItemConflict:
+    properties:
+      code:
+        example: 409
+        type: integer
+      message:
+        example: duplicate SKU detected
+        type: string
+    type: object
+  core.ErrResponseItemNotFound:
+    properties:
+      code:
+        example: 404
+        type: integer
+      message:
+        example: item not found
+        type: string
+    type: object
   core.Pagination:
     properties:
       limit:
+        example: 10
         type: integer
       page:
+        example: 1
         type: integer
       total:
+        example: 100
+        type: integer
+    type: object
+  entity.CachedReport:
+    properties:
+      generated_at:
+        description: |-
+          GeneratedAt acts as a Logical TTL marker. It enables:
+          1. Graceful Degradation: If the DB is down, we can fallback to serving slightly stale data instead of returning a 500 error.
+          2. Cache Stampede Prevention: Allows implementing the Stale-While-Revalidate pattern when multiple requests hit an expired cache.
+          3. Observability: Provides exact snapshot timing for debugging purposes.
+        example: "2026-05-22T08:00:00Z"
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/entity.DailyItemSummary'
+        type: array
+    type: object
+  entity.DailyItemSummary:
+    properties:
+      created_at:
+        example: "2024-01-15T10:30:00Z"
+        type: string
+      id:
+        example: 1
+        type: integer
+      item_id:
+        example: 1
+        type: integer
+      summary_date:
+        example: "2026-05-22T00:00:00Z"
+        type: string
+      total_adjust:
+        example: 10
+        type: integer
+      total_in:
+        example: 100
+        type: integer
+      total_out:
+        example: 40
+        type: integer
+      updated_at:
+        example: "2024-01-15T10:30:00Z"
+        type: string
+    type: object
+  entity.ImportBatchResult:
+    properties:
+      duplicate:
+        example: 0
+        type: integer
+      failed_rows:
+        items:
+          $ref: '#/definitions/entity.ProcessResult'
+        type: array
+      rejected:
+        example: 1
+        type: integer
+      success:
+        example: 999
+        type: integer
+      total:
+        example: 1000
         type: integer
     type: object
   entity.Item:
     properties:
       created_at:
+        example: "2024-01-15T10:30:00Z"
         type: string
       current_stock:
+        example: 150
         type: integer
       id:
+        example: 1
         type: integer
       low_stock_threshold:
+        example: 10
         type: integer
       name:
+        example: Laptop Dell XPS 15
         type: string
       sku:
+        example: SKU-001
         type: string
       updated_at:
+        example: "2024-01-15T10:30:00Z"
         type: string
     type: object
-  service.ImportBatchResult:
+  entity.Movement:
     properties:
-      duplicate:
-        type: integer
-      failed_rows:
-        items:
-          $ref: '#/definitions/service.ProcessResult'
-        type: array
-      rejected:
-        type: integer
-      success:
-        type: integer
-      total:
-        type: integer
-    type: object
-  service.ProcessResult:
-    properties:
-      error_reason:
+      created_at:
+        example: "2024-01-15T10:30:00Z"
         type: string
       external_id:
+        example: TXN-120001
+        type: string
+      id:
+        example: 1
+        type: integer
+      item_id:
+        example: 1
+        type: integer
+      movement_time:
+        example: "2026-05-22T08:00:00Z"
+        type: string
+      movement_type:
+        allOf:
+        - $ref: '#/definitions/entity.MovementType'
+        enum:
+        - IN
+        - OUT
+        - ADJUST
+        example: IN
+      note:
+        example: Initial stock import batch 1
+        type: string
+      quantity:
+        example: 50
+        type: integer
+      updated_at:
+        example: "2024-01-15T10:30:00Z"
+        type: string
+    type: object
+  entity.MovementType:
+    enum:
+    - IN
+    - OUT
+    - ADJUST
+    type: string
+    x-enum-varnames:
+    - MovementTypeIn
+    - MovementTypeOut
+    - MovementTypeAdjust
+  entity.ProcessResult:
+    properties:
+      error_reason:
+        example: item not found
+        type: string
+      external_id:
+        example: TXN-120017
         type: string
       row_index:
+        example: 18
         type: integer
       status:
-        $ref: '#/definitions/service.ProcessStatus'
+        allOf:
+        - $ref: '#/definitions/entity.ProcessStatus'
+        enum:
+        - accepted
+        - rejected
+        - duplicate
+        example: rejected
     type: object
-  service.ProcessStatus:
+  entity.ProcessStatus:
     enum:
     - accepted
     - rejected
@@ -104,27 +261,26 @@ paths:
       - application/json
       responses:
         "200":
-          description: Successful batch processing summary
+          description: OK
           schema:
             allOf:
             - $ref: '#/definitions/core.APIResponse'
             - properties:
                 result:
-                  $ref: '#/definitions/service.ImportBatchResult'
+                  $ref: '#/definitions/entity.ImportBatchResult'
               type: object
         "400":
-          description: Bad Request - Missing file, empty file, invalid format, or
-            malformed CSV header
+          description: Bad Request
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseBadRequest'
         "409":
-          description: Conflict - Duplicate transaction detected
+          description: Conflict
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseConflict'
         "500":
-          description: Internal Server Error - Failed to read/process file
+          description: Internal Server Error
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseInternal'
       security:
       - BearerAuth: []
       summary: Import inventory movements from a CSV file
@@ -181,25 +337,23 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
-          description: Successfully retrieved paginated list of items
+        "201":
+          description: Created
           schema:
             allOf:
             - $ref: '#/definitions/core.APIResponse'
             - properties:
                 result:
-                  items:
-                    $ref: '#/definitions/entity.Item'
-                  type: array
+                  $ref: '#/definitions/entity.Item'
               type: object
         "400":
-          description: Bad Request - Invalid query or sorting parameters
+          description: Bad Request
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseBadRequest'
         "500":
-          description: Internal Server Error - Database read failure
+          description: Internal Server Error
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseInternal'
       security:
       - BearerAuth: []
       summary: List and filter inventory items
@@ -223,7 +377,7 @@ paths:
       - application/json
       responses:
         "201":
-          description: Product registered successfully
+          description: Created
           schema:
             allOf:
             - $ref: '#/definitions/core.APIResponse'
@@ -232,18 +386,17 @@ paths:
                   $ref: '#/definitions/entity.Item'
               type: object
         "400":
-          description: Bad Request - Invalid input data, missing required fields,
-            or negative values
+          description: Bad Request
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseBadRequest'
         "409":
-          description: Conflict - Duplicate SKU detected
+          description: Conflict
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseItemConflict'
         "500":
-          description: Internal Server Error - Database write failure
+          description: Internal Server Error
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseInternal'
       security:
       - BearerAuth: []
       summary: Register a new inventory item
@@ -265,7 +418,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Successfully retrieved item details
+          description: OK
           schema:
             allOf:
             - $ref: '#/definitions/core.APIResponse'
@@ -274,17 +427,17 @@ paths:
                   $ref: '#/definitions/entity.Item'
               type: object
         "400":
-          description: Bad Request - Invalid database ID format
+          description: Bad Request
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseBadRequest'
         "404":
-          description: Not Found - Item with the specified ID does not exist
+          description: Not Found
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseItemNotFound'
         "500":
-          description: Internal Server Error - Database read failure
+          description: Internal Server Error
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseInternal'
       security:
       - BearerAuth: []
       summary: Retrieve an inventory item by ID
@@ -318,21 +471,30 @@ paths:
       - application/json
       responses:
         "200":
-          description: Successfully retrieved movement history
+          description: OK
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                pagination:
+                  $ref: '#/definitions/core.Pagination'
+                result:
+                  items:
+                    $ref: '#/definitions/entity.Movement'
+                  type: array
+              type: object
         "400":
-          description: Bad Request - Invalid item ID or pagination parameters
+          description: Bad Request
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseBadRequest'
         "404":
-          description: Item not found
+          description: Not Found
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseItemNotFound'
         "500":
-          description: Internal Server Error - Failed to retrieve movement history
+          description: Internal Server Error
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseInternal'
       security:
       - BearerAuth: []
       summary: Retrieve inventory movement history by item ID
@@ -359,18 +521,22 @@ paths:
       - application/json
       responses:
         "200":
-          description: Successfully retrieved the daily report
+          description: OK
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            allOf:
+            - $ref: '#/definitions/core.APIResponse'
+            - properties:
+                result:
+                  $ref: '#/definitions/entity.CachedReport'
+              type: object
         "400":
-          description: Bad Request - Invalid date format or non-positive limit parameter
+          description: Bad Request
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseBadRequest'
         "500":
-          description: Internal Server Error - Database, aggregation, or caching layer
-            failure
+          description: Internal Server Error
           schema:
-            $ref: '#/definitions/core.APIResponse'
+            $ref: '#/definitions/core.ErrResponseInternal'
       security:
       - BearerAuth: []
       summary: Retrieve the daily active inventory report
@@ -381,7 +547,8 @@ schemes:
 - https
 securityDefinitions:
   BearerAuth:
-    description: Type "Bearer {your JWT token}"
+    description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer
+      eyJhbGci..."'
     in: header
     name: Authorization
     type: apiKey

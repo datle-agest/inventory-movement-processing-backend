@@ -1,9 +1,9 @@
 package core
 
 type Pagination struct {
-	Page  int `json:"page"`
-	Limit int `json:"limit"`
-	Total int `json:"total"`
+	Page  int `json:"page" example:"1"`
+	Limit int `json:"limit" example:"10"`
+	Total int `json:"total" example:"100"`
 }
 
 func (p *Pagination) Process() {

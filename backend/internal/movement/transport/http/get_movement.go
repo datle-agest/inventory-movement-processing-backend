@@ -20,10 +20,10 @@ import (
 // @Param id path int true "Unique identifier of the inventory item"
 // @Param page  query int false "Page number for pagination. Must be greater than 0. Default is 1."
 // @Param limit query int false "Maximum number of movement records per page. Must be greater than 0. Default is 10."
-// @Success 200 {object} core.APIResponse "Successfully retrieved movement history"
-// @Failure 400 {object} core.APIResponse "Bad Request - Invalid item ID or pagination parameters"
-// @Failure 404 {object} core.APIResponse "Item not found"
-// @Failure 500 {object} core.APIResponse "Internal Server Error - Failed to retrieve movement history"
+// @Success 200 {object} core.APIResponse{result=[]entity.Movement,pagination=core.Pagination}
+// @Failure 400 {object} core.ErrResponseBadRequest
+// @Failure 404 {object} core.ErrResponseItemNotFound
+// @Failure 500 {object} core.ErrResponseInternal
 // @Router /v1/items/{id}/movements [get]
 // @Security BearerAuth
 func (h *Handler) GetMovementsByItemID() gin.HandlerFunc {

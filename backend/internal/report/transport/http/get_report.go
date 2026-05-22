@@ -19,9 +19,9 @@ import (
 // @Produce json
 // @Param date  query string false "Target date for the report in YYYY-MM-DD format. Defaults to the current date if omitted."
 // @Param limit query int    false "Maximum number of top active items to retrieve. Must be a strictly positive integer. Default is 5."
-// @Success 200 {object} core.APIResponse "Successfully retrieved the daily report"
-// @Failure 400 {object} core.APIResponse "Bad Request - Invalid date format or non-positive limit parameter"
-// @Failure 500 {object} core.APIResponse "Internal Server Error - Database, aggregation, or caching layer failure"
+// @Success 200 {object} core.APIResponse{result=entity.CachedReport}
+// @Failure 400 {object} core.ErrResponseBadRequest
+// @Failure 500 {object} core.ErrResponseInternal
 // @Router /v1/reports/daily [get]
 // @Security BearerAuth
 func (h *reportHandler) GetDailyReport() gin.HandlerFunc {
