@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/pkg/core"
 	"net/http"
@@ -45,7 +46,7 @@ func (hdl handler) GetItem() gin.HandlerFunc {
 
 		c.JSON(
 			http.StatusOK,
-			core.Success(item),
+			core.SuccessWithMessage(item, fmt.Sprintf("get %s success", item.Name)),
 		)
 	}
 }

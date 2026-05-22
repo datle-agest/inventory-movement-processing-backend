@@ -44,7 +44,7 @@ func (h *Handler) ImportBatch() gin.HandlerFunc {
 
 		c.JSON(
 			http.StatusOK,
-			core.Success(result),
+			core.SuccessWithMessage(result, "import batch success"),
 		)
 	}
 }

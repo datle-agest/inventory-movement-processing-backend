@@ -57,6 +57,6 @@ func (h *reportHandler) GetDailyReport() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, core.Success(result))
+		c.JSON(http.StatusOK, core.SuccessWithMessage(result, "get report success"))
 	}
 }
