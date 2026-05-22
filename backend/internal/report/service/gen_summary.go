@@ -12,7 +12,7 @@ func (s *reportService) GenerateDailySummary(
 	dateStr := date.Format("2006-01-02")
 	s.logger.Infof("Start generating daily summary for date: %s", dateStr)
 
-	summaries, err := s.movementUseCase.
+	summaries, err := s.movementService.
 		AggregateDailyItemSummaryFromMovement(ctx, date)
 
 	if err != nil {
