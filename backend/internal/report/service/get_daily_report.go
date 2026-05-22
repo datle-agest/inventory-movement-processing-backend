@@ -12,6 +12,8 @@ import (
 
 const cacheTTLToday = 1 * time.Minute
 
+// NOTE: What if cache timeout and 100 request hit at once
+// NOTE: What if that date is holiday and there is no movement
 func (s *reportService) GetDailyReport(
 	ctx context.Context,
 	date time.Time,
