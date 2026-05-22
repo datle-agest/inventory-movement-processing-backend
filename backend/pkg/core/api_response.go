@@ -31,10 +31,12 @@ func SuccessWithMessage(
 func SuccessWithPaging(
 	data interface{},
 	paging *Pagination,
+	message string,
 ) *APIResponse {
 
 	return &APIResponse{
 		Code:       http.StatusOK,
+		Message:    message,
 		Result:     data,
 		Pagination: paging,
 	}

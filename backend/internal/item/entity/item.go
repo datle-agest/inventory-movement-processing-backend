@@ -4,8 +4,6 @@ import (
 	"inventory-movement-processing/pkg/core"
 	"strings"
 )
-//chỗ import movement: fail 1 phần trả về 207
-//SKU: validate nếu có tồn tại SKU thì trả về lỗi
 type Item struct {
 	core.SQLModel
 	Name              string `json:"name"                gorm:"column:name;type:varchar(255);not null" example:"Laptop Dell XPS 15"`

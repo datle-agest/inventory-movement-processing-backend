@@ -57,7 +57,7 @@ func (h *Handler) GetMovementsByItemID() gin.HandlerFunc {
 
 		c.JSON(
 			http.StatusOK,
-			core.SuccessWithPaging(movements, &paging),
+			core.SuccessWithPaging(movements, &paging, "success"),
 		)
 	}
 }

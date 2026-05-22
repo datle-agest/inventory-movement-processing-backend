@@ -59,7 +59,7 @@ func (hdl handler) ListItem() gin.HandlerFunc {
 
 		c.JSON(
 			http.StatusOK,
-			core.SuccessWithPaging(items, &paging),
+			core.SuccessWithPaging(items, &paging, "success"),
 		)
 
 	}
