@@ -12,6 +12,8 @@ import (
 
 const cacheTTLToday = 1 * time.Minute
 
+// NOTE: What if cache timeout and 100 request hit at once
+// NOTE: What if that date is holiday and there is no movement
 func (s *reportService) GetDailyReport(
 	ctx context.Context,
 	date time.Time,
@@ -152,7 +154,7 @@ func (s *reportService) buildResult(
 }
 
 func (s *reportService) fetchAllLowStockItems(ctx context.Context) ([]*itemEntity.Item, error) {
-	items, err := s.itemRepository.ListLowStockItems(ctx)
+	items, err := s.itemService.ListLowStockItems(ctx)
 	if err != nil {
 		s.logger.Errorf("ItemRepository.ListLowStockItems failed: %v", err)
 		return nil, err

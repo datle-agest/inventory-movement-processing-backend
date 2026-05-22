@@ -30,8 +30,8 @@ type itemService interface {
 
 type reportService struct {
 	reportRepository reportRepository
-	movementUseCase  movementService
-	itemRepository   itemService
+	movementService  movementService
+	itemService      itemService
 	cacheStore       common.CacheProvider
 	config           common.Config
 	logger           logger.Logger
@@ -39,16 +39,16 @@ type reportService struct {
 
 func NewReportService(
 	reportRepository reportRepository,
-	movementUseCase movementService,
-	itemRepository itemService,
+	movementService movementService,
+	itemService itemService,
 	cacheStore common.CacheProvider,
 	config common.Config,
 	logger logger.Logger,
 ) *reportService {
 	return &reportService{
 		reportRepository: reportRepository,
-		movementUseCase:  movementUseCase,
-		itemRepository:   itemRepository,
+		movementService:  movementService,
+		itemService:      itemService,
 		cacheStore:       cacheStore,
 		config:           config,
 		logger:           logger,
