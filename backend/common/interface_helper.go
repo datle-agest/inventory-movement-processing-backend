@@ -26,6 +26,7 @@ type CacheProvider interface {
 	Get(ctx context.Context, key string) (string, bool, error)
 	Set(ctx context.Context, key, value string, ttl time.Duration) error
 	Del(ctx context.Context, keys ...string) (int64, error)
+	SetNX(ctx context.Context, key, value string, ttl time.Duration) (bool, error)
 }
 
 type TxManager interface {

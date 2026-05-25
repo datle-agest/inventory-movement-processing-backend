@@ -83,7 +83,8 @@ func TestReportService_GenerateDailySummary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockItemRepo := &mockItemRepo{}
 			mockCache := &mockCache{}
-			mockConfig := &mockConfig{}
+
+			cacheCfg := ReportCacheConfig{}
 			mockLogger := &mockLogger{}
 
 			svc := newService(
@@ -91,7 +92,7 @@ func TestReportService_GenerateDailySummary(t *testing.T) {
 				tt.mockMove,
 				mockItemRepo,
 				mockCache,
-				mockConfig,
+				cacheCfg,
 				mockLogger,
 			)
 
