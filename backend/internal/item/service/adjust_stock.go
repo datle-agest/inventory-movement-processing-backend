@@ -2,21 +2,20 @@ package service
 
 import (
 	"context"
-	"errors"
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/internal/item/entity"
 )
 
-func (s *service) AdjustStock(ctx context.Context, itemID int32, quantityChange int32) error {
+func (s *itemService) AdjustStock(ctx context.Context, itemID int32, quantityChange int32) error {
 	// lock SELECT FOR UPDATE và lấy Item hiện tại
 	item, err := s.repo.GetItemForUpdate(ctx, itemID)
 	if err != nil {
-		if errors.Is(err, entity.ErrItemNotFound) {
-			s.logger.Warnf("[Service][AdjustStock] item with id %d not found", itemID)
-			return common.ErrNotFound("item not found")
-		}
 		s.logger.Errorf("[Service][AdjustStock] failed to lock item with id %d: %v", itemID, err)
 		return common.ErrInternal("failed to lock item for adjustment")
+	}
+	if item == nil {
+		s.logger.Warnf("[Service][AdjustStock] item with id %d not found", itemID)
+		return common.ErrNotFound("item not found")
 	}
 
 	// Tính tồn kho mới

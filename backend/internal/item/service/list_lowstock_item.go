@@ -6,7 +6,7 @@ import (
 	"inventory-movement-processing/internal/item/entity"
 )
 
-func (s *service) ListLowStockItems(ctx context.Context) ([]*entity.Item, error) {
+func (s *itemService) ListLowStockItems(ctx context.Context) ([]*entity.Item, error) {
 	items, err := s.repo.ListLowStockItems(ctx)
 	if err != nil {
 		s.logger.Errorf("[Service][ListLowStockItems] failed to fetch low stock items: %v", err)

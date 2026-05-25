@@ -64,7 +64,7 @@ func (repo *repository) GetItem(ctx context.Context, id int32) (*itemEntity.Item
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, entity.ErrItemNotFound
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (repo *repository) GetItemForUpdate(ctx context.Context, id int32) (*itemEn
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, entity.ErrItemNotFound
+			return nil, nil
 		}
 		return nil, err
 	}

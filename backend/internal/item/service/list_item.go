@@ -7,7 +7,7 @@ import (
 	"inventory-movement-processing/pkg/core"
 )
 
-func (s *service) ListItem(ctx context.Context, filter *entity.ItemFilter, paging *core.Pagination) ([]entity.Item, error) {
+func (s *itemService) ListItem(ctx context.Context, filter *entity.ItemFilter, paging *core.Pagination) ([]entity.Item, error) {
 	items, err := s.repo.ListItem(ctx, filter, paging)
 
 	if err != nil {

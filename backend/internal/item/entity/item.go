@@ -4,6 +4,7 @@ import (
 	"inventory-movement-processing/pkg/core"
 	"strings"
 )
+
 type Item struct {
 	core.SQLModel
 	Name              string `json:"name"                gorm:"column:name;type:varchar(255);not null" example:"Laptop Dell XPS 15"`
