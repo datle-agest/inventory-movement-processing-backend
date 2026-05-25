@@ -26,9 +26,9 @@ import (
 // @Param sort_order   query string false "Sort direction: asc or desc"
 // @Param page         query int    false "Page number for pagination (Default: 1)"
 // @Param limit        query int    false "Maximum number of records per page (Default: 10)"
-// @Success 200 {object} core.APIResponse{result=[]entity.Item} "Successfully retrieved paginated list of items"
-// @Failure 400 {object} core.APIResponse "Bad Request - Invalid query or sorting parameters"
-// @Failure 500 {object} core.APIResponse "Internal Server Error - Database read failure"
+// @Success 201 {object} core.APIResponse{result=entity.Item}
+// @Failure 400 {object} core.ErrResponseBadRequest
+// @Failure 500 {object} core.ErrResponseInternal
 // @Router /v1/items [get]
 // @Security BearerAuth
 func (hdl handler) ListItem() gin.HandlerFunc {
@@ -59,7 +59,7 @@ func (hdl handler) ListItem() gin.HandlerFunc {
 
 		c.JSON(
 			http.StatusOK,
-			core.SuccessWithPaging(items, &paging),
+			core.SuccessWithPaging(items, &paging, "success"),
 		)
 
 	}

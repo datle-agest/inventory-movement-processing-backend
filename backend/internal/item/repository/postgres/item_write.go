@@ -2,13 +2,19 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"inventory-movement-processing/internal/item/entity"
 	"inventory-movement-processing/pkg/components/gormc"
+
+	"gorm.io/gorm"
 )
 
 func (repo *repository) CreateItem(ctx context.Context, item entity.Item) (*entity.Item, error) {
 	err := repo.db.WithContext(ctx).Create(&item).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return nil, entity.ErrItemDuplicated
+		}
 		return nil, err
 	}
 	return &item, nil

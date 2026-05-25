@@ -16,19 +16,19 @@ import (
 // @Accept json
 // @Produce json
 // @Param item body entity.Item true "Product registration details including SKU, name, initial stock, and safety threshold."
-// @Success 201 {object} core.APIResponse{result=entity.Item} "Product registered successfully"
-// @Failure 400 {object} core.APIResponse "Bad Request - Invalid input data, missing required fields, or negative values"
-// @Failure 409 {object} core.APIResponse "Conflict - Duplicate SKU detected"
-// @Failure 500 {object} core.APIResponse "Internal Server Error - Database write failure"
+// @Success 201 {object} core.APIResponse{result=entity.Item}
+// @Failure 400 {object} core.ErrResponseBadRequest
+// @Failure 409 {object} core.ErrResponseItemConflict
+// @Failure 500 {object} core.ErrResponseInternal
 // @Router /v1/items [post]
 // @Security BearerAuth
 func (hdl handler) CreateItem() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 
-		var item entity.Item
+		var item entity.CreateItemRequest
 
-		if err := c.ShouldBindJSON(&item); err != nil {
+		if err := c.ShouldBind(&item); err != nil {
 			core.WriteError(c, err)
 			return
 		}

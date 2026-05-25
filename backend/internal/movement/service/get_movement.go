@@ -13,7 +13,6 @@ func (s *service) GetMovementsByItemID(ctx context.Context, itemId int, paging *
 		return nil, common.ErrBadRequest("invalid item id for history lookup")
 	}
 
-	// Chuyển tiếp con trỏ paging xuống repo gorm xử lý
 	movements, err := s.movementRepo.GetMovementsByItemID(ctx, itemId, paging)
 	if err != nil {
 		s.logger.Errorf("[Service][GetMovementsByItemID] failed to fetch movements for item id %d: %v", itemId, err)

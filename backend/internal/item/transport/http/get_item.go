@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/pkg/core"
 	"net/http"
@@ -16,10 +17,10 @@ import (
 // @Accept json
 // @Produce json
 // @Param id path int true "Unique database ID of the inventory item"
-// @Success 200 {object} core.APIResponse{result=entity.Item} "Successfully retrieved item details"
-// @Failure 400 {object} core.APIResponse "Bad Request - Invalid database ID format"
-// @Failure 404 {object} core.APIResponse "Not Found - Item with the specified ID does not exist"
-// @Failure 500 {object} core.APIResponse "Internal Server Error - Database read failure"
+// @Success 200 {object} core.APIResponse{result=entity.Item}
+// @Failure 400 {object} core.ErrResponseBadRequest
+// @Failure 404 {object} core.ErrResponseItemNotFound
+// @Failure 500 {object} core.ErrResponseInternal
 // @Router /v1/items/{id} [get]
 // @Security BearerAuth
 func (hdl handler) GetItem() gin.HandlerFunc {
@@ -45,7 +46,7 @@ func (hdl handler) GetItem() gin.HandlerFunc {
 
 		c.JSON(
 			http.StatusOK,
-			core.Success(item),
+			core.SuccessWithMessage(item, fmt.Sprintf("get %s success", item.Name)),
 		)
 	}
 }

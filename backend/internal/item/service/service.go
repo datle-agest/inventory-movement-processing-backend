@@ -16,21 +16,13 @@ type itemRepository interface {
 	GetItemForUpdate(ctx context.Context, id int32) (*entity.Item, error)
 }
 
-type ItemService interface {
-	GetItem(ctx context.Context, id int32) (*entity.Item, error)
-	ListItem(ctx context.Context, filter *entity.ItemFilter, paging *core.Pagination) ([]entity.Item, error)
-	CreateItem(ctx context.Context, item entity.Item) (*entity.Item, error)
-	ListLowStockItems(ctx context.Context) ([]*entity.Item, error)
-	AdjustStock(ctx context.Context, itemID int32, quantityChange int32) error
-}
-
-type service struct {
+type itemService struct {
 	repo   itemRepository
 	logger logger.Logger
 }
 
-func NewItemService(repo itemRepository, logger logger.Logger) ItemService {
-	return &service{
+func NewItemService(repo itemRepository, logger logger.Logger) *itemService {
+	return &itemService{
 		repo:   repo,
 		logger: logger,
 	}

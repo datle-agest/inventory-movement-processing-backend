@@ -3,8 +3,8 @@ package core
 import "net/http"
 
 type APIResponse struct {
-	Code       int         `json:"code"`
-	Message    string      `json:"message,omitempty"`
+	Code       int         `json:"code" example:"200"`
+	Message    string      `json:"message,omitempty" example:"success"`
 	Result     interface{} `json:"result,omitempty"`
 	Pagination *Pagination `json:"pagination,omitempty"`
 }
@@ -31,10 +31,12 @@ func SuccessWithMessage(
 func SuccessWithPaging(
 	data interface{},
 	paging *Pagination,
+	message string,
 ) *APIResponse {
 
 	return &APIResponse{
 		Code:       http.StatusOK,
+		Message:    message,
 		Result:     data,
 		Pagination: paging,
 	}
