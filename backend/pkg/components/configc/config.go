@@ -7,7 +7,6 @@ import (
 
 type config struct {
 	id                string
-	reportCacheLimit  int
 	managerAPIKey     string
 	storekeeperAPIKey string
 }
@@ -17,12 +16,6 @@ func NewConfigComponent(id string) *config {
 }
 
 func (c *config) InitFlags() {
-	flag.IntVar(
-		&c.reportCacheLimit,
-		"top k report cache limit",
-		100,
-		"cache top k (default: 100)",
-	)
 	flag.StringVar(
 		&c.managerAPIKey,
 		"manager-api-key",
@@ -49,14 +42,10 @@ func (c *config) Stop() error {
 	return nil
 }
 
-func (c *config) GetReportCacheLimit() int {
-	return c.reportCacheLimit
-}
-
 func (c *config) GetManagerAPIKey() string {
-    return c.managerAPIKey
+	return c.managerAPIKey
 }
 
 func (c *config) GetStorekeeperAPIKey() string {
-    return c.storekeeperAPIKey
+	return c.storekeeperAPIKey
 }

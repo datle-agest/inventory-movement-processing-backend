@@ -43,9 +43,10 @@ func (m *mockItemRepo) ListLowStockItems(ctx context.Context) ([]*itemEntity.Ite
 
 // --- CacheProvider mock ---
 type mockCache struct {
-	getFn func(ctx context.Context, key string) (string, bool, error)
-	setFn func(ctx context.Context, key string, value string, ttl time.Duration) error
-	delFn func(ctx context.Context, keys ...string) (int64, error)
+	getFn   func(ctx context.Context, key string) (string, bool, error)
+	setFn   func(ctx context.Context, key string, value string, ttl time.Duration) error
+	delFn   func(ctx context.Context, keys ...string) (int64, error)
+	setNXFn func(ctx context.Context, key string, value string, ttl time.Duration) (bool, error) // SỬA TẠI ĐÂY: Thêm field function mock
 }
 
 func (m *mockCache) Get(ctx context.Context, key string) (string, bool, error) {
@@ -66,12 +67,12 @@ func (m *mockCache) Del(ctx context.Context, keys ...string) (int64, error) {
 	return 0, nil
 }
 
-// --- Config mock ---
-type mockConfig struct {
-	cacheLimit int
+func (m *mockCache) SetNX(ctx context.Context, key, value string, ttl time.Duration) (bool, error) {
+	if m.setNXFn != nil {
+		return m.setNXFn(ctx, key, value, ttl)
+	}
+	return true, nil
 }
-
-func (m *mockConfig) GetReportCacheLimit() int { return m.cacheLimit }
 
 // --- Logger mock ---
 type mockLogger struct{}
@@ -94,14 +95,14 @@ func (m *mockLogger) WithFields(fields logger.Fields) logger.Logger {
 	return m
 }
 
-// Helpers
+// --- Helpers ---
 
 func newService(
 	rr reportRepository,
 	mu movementService,
 	ir itemService,
 	cache *mockCache,
-	cfg *mockConfig,
+	cfg ReportCacheConfig,
 	log logger.Logger,
 ) *reportService {
 	return NewReportService(rr, mu, ir, cache, cfg, log)
