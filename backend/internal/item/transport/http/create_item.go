@@ -26,9 +26,9 @@ func (hdl handler) CreateItem() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 
-		var item entity.Item
+		var item entity.CreateItemRequest
 
-		if err := c.ShouldBindJSON(&item); err != nil {
+		if err := c.ShouldBind(&item); err != nil {
 			core.WriteError(c, err)
 			return
 		}
