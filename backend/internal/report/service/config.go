@@ -41,6 +41,7 @@ type ReportCacheConfig struct {
 	// responses will be silently truncated.
 	CacheLimit int
 
+	// Use for bench mark purpose
 	DisableCache        bool
 	DisableSingleFlight bool
 	DisableLock         bool

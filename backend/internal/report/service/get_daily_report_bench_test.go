@@ -5,27 +5,43 @@ import (
 	"testing"
 	"time"
 
+	itemEntity "inventory-movement-processing/internal/item/entity"
 	reportEntity "inventory-movement-processing/internal/report/entity"
 )
 
 func BenchmarkGetDailyReport(b *testing.B) {
-	// 1. Khởi tạo Mock Repo với độ trễ của Database (~50ms)
+	dbConnectionPool := make(chan struct{}, 10)
+
+	// 1. Initialize Mock Repo with Database-like latency (~50ms)
 	mockRepo := &mockReportRepo{
 		listTopActiveFn: func(ctx context.Context, date time.Time, limit int) ([]*reportEntity.DailyItemSummary, error) {
-			time.Sleep(50 * time.Millisecond) // Giả lập DB query chậm
+			// Queue for a DB connection. If the pool is full,
+			// the goroutine will be blocked by the Go scheduler.
+			dbConnectionPool <- struct{}{}
+
+			// Always release the connection back to the pool after query completion
+			defer func() { <-dbConnectionPool }()
+
+			// The request now actually occupies the DB connection and starts querying
+			time.Sleep(50 * time.Millisecond) // Simulate I/O delay
+
 			return []*reportEntity.DailyItemSummary{
 				{ItemID: 1, SummaryDate: date},
 			}, nil
 		},
 		upsertFn: func(ctx context.Context, data []*reportEntity.DailyItemSummary) error {
-			time.Sleep(50 * time.Millisecond) // Giả lập DB write
+			dbConnectionPool <- struct{}{}
+			defer func() { <-dbConnectionPool }()
+
+			time.Sleep(50 * time.Millisecond)
 			return nil
 		},
 	}
 
-	// 2. Khởi tạo Mock Cache với độ trễ của Redis (~2ms)
-	// Trả về false (Cache Miss) để ÉP các request phải đi xuống DB,
-	// từ đó kiểm tra xem Singleflight có chặn được Stampede hay không.
+	// 2. Initialize Mock Cache with Redis-like latency (~2ms)
+	// Always return false (Cache Miss) to FORCE requests
+	// to hit the DB, allowing us to verify whether
+	// Singleflight can prevent cache stampede.
 	mockCacheStorage := &mockCache{
 		getFn: func(ctx context.Context, key string) (string, bool, error) {
 			time.Sleep(2 * time.Millisecond)
@@ -37,7 +53,7 @@ func BenchmarkGetDailyReport(b *testing.B) {
 		},
 		setNXFn: func(ctx context.Context, key string, value string, ttl time.Duration) (bool, error) {
 			time.Sleep(2 * time.Millisecond)
-			return true, nil // Giả lập luôn lấy được Lock thành công
+			return true, nil // Simulate successful lock acquisition every time
 		},
 	}
 
@@ -47,16 +63,23 @@ func BenchmarkGetDailyReport(b *testing.B) {
 			return nil, nil
 		},
 	}
-	mockItem := &mockItemRepo{} // Không dùng tới trong test này nên để trống
+
+	mockItem := &mockItemRepo{
+		listLowStockFn: func(ctx context.Context) ([]*itemEntity.Item, error) {
+			time.Sleep(5 * time.Millisecond)
+			return nil, nil
+		},
+	}
+
 	mockLog := &mockLogger{}
 
-	// 3. Định nghĩa các kịch bản test
+	// 3. Define benchmark scenarios
 	scenarios := []struct {
 		name string
 		cfg  ReportCacheConfig
 	}{
 		{
-			name: "1_All_Enabled", // Chạy qua Singleflight -> Lock -> Cache/DB
+			name: "1_All_Enabled", // Flow: Singleflight -> Lock -> Cache/DB
 			cfg: func() ReportCacheConfig {
 				c := DefaultReportCacheConfig()
 				return c
@@ -80,7 +103,7 @@ func BenchmarkGetDailyReport(b *testing.B) {
 			}(),
 		},
 		{
-			name: "4_Direct_DB_Only", // Bỏ qua tất cả, đâm thẳng vào DB
+			name: "4_Direct_DB_Only", // Skip everything and hit the DB directly
 			cfg: func() ReportCacheConfig {
 				c := DefaultReportCacheConfig()
 				c.DisableCache = true
@@ -91,7 +114,7 @@ func BenchmarkGetDailyReport(b *testing.B) {
 		},
 	}
 
-	// 4. Chạy vòng lặp benchmark
+	// 4. Run benchmark loop
 	ctx := context.Background()
 	targetDate := time.Now()
 
@@ -99,12 +122,12 @@ func BenchmarkGetDailyReport(b *testing.B) {
 		b.Run(s.name, func(b *testing.B) {
 			svc := newService(mockRepo, mockMovement, mockItem, mockCacheStorage, s.cfg, mockLog)
 
-			b.ResetTimer() // Xóa thời gian setup khỏi kết quả đo
+			b.ResetTimer() // Exclude setup time from benchmark result
 
-			// Tạo hàng ngàn request đồng thời
+			// Generate thousands of concurrent requests
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
-					// Gọi hàm cần benchmark
+					// Call the function under benchmark
 					_, _ = svc.GetDailyReport(ctx, targetDate, 5)
 				}
 			})
