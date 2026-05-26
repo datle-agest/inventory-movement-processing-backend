@@ -26,89 +26,98 @@ func (s *reportService) GetDailyReport(
 
 	// 1. Try cache
 	if items, ok, err := s.loadFromCache(ctx, cacheKey, isToday); err != nil {
-		// cache error is non-fatal, fall through to DB
 		s.logger.Warnf("Cache load failed for key %s: %v", cacheKey, err)
 	} else if ok {
 		return s.buildResult(ctx, items, limit, isToday)
 	}
 
-	// 2. Check empty-day sentinel in cache (fast path to avoid DB query on known-empty days)
-	if empty, err := s.isKnownEmptyDay(ctx, dateStr); err != nil {
-		s.logger.Warnf("Empty-day cache check failed for %s: %v", dateStr, err)
-	} else if empty {
-		s.logger.Infof("Known empty day (cache flag) for %s, returning empty result", dateStr)
-		return s.buildResult(ctx, nil, limit, isToday)
+	// 2. Single Flight wraps the rest
+	// Key is dateStr so that requests are collected on the same day
+	type sfResult struct {
+		items []*entity.DailyItemSummary
+		stale bool
 	}
 
-	// 3. Acquire distributed lock to prevent cache stampede.
-	//    Only one instance regenerates; others fall through to serve from DB directly.
-	lockKey := s.cacheConfig.generationLockKey(dateStr)
-	acquired, err := s.cacheStore.SetNX(ctx, lockKey, "1", s.cacheConfig.GenerationLockTTL)
-	if err != nil {
-		s.logger.Warnf("Failed to acquire generation lock for %s: %v", dateStr, err)
-	}
-
-	if acquired {
-		defer func() {
-			if _, delErr := s.cacheStore.Del(ctx, lockKey); delErr != nil {
-				s.logger.Warnf("Failed to release generation lock for %s: %v", dateStr, delErr)
-			}
-		}()
-	} else {
-		// Another instance holds the lock and is currently generating.
-		// We fall through and query DB directly with whatever data is available.
-		s.logger.Infof("Generation lock held by another instance for %s, querying DB directly", dateStr)
-	}
-
-	// 4. Query DB
-	topItems, err := s.reportRepository.
-		ListTopActiveItemsByDate(ctx, date, s.cacheConfig.CacheLimit)
-	if err != nil {
-		s.logger.Errorf("ListTopActiveItemsByDate failed for %s: %v", dateStr, err)
-		return nil, common.ErrInternal("cannot query top active items")
-	}
-
-	// 5. Check DB staleness (only the lock holder triggers a fallback generation)
-	isStale := isDataStale(topItems, date)
-
-	if acquired && (isToday || isStale) {
-		s.logger.Infof("Lock acquired. Generating daily summary for %s (isToday: %t, isStale: %t)", dateStr, isToday, isStale)
-		if err := s.GenerateDailySummary(ctx, date); err != nil {
-			s.logger.Errorf("GenerateDailySummary failed for %s: %v", dateStr, err)
-			return nil, common.ErrInternal("failed to process daily summary")
+	v, err, _ := s.sfGroup.Do(dateStr, func() (interface{}, error) {
+		// 2a. Check empty-day sentinel
+		if empty, err := s.isKnownEmptyDay(ctx, dateStr); err != nil {
+			s.logger.Warnf("Empty-day cache check failed for %s: %v", dateStr, err)
+		} else if empty {
+			s.logger.Infof("Known empty day (cache flag) for %s", dateStr)
+			return &sfResult{items: nil, stale: false}, nil
 		}
 
-		topItems, err = s.reportRepository.
+		// 2b. Acquire distributed lock
+		lockKey := s.cacheConfig.generationLockKey(dateStr)
+		acquired, err := s.cacheStore.SetNX(ctx, lockKey, "1", s.cacheConfig.GenerationLockTTL)
+		if err != nil {
+			s.logger.Warnf("Failed to acquire generation lock for %s: %v", dateStr, err)
+		}
+		if acquired {
+			defer func() {
+				if _, delErr := s.cacheStore.Del(ctx, lockKey); delErr != nil {
+					s.logger.Warnf("Failed to release generation lock for %s: %v", dateStr, delErr)
+				}
+			}()
+		} else {
+			s.logger.Infof("Generation lock held by another instance for %s, querying DB directly", dateStr)
+		}
+
+		// 2c. Query DB
+		topItems, err := s.reportRepository.
 			ListTopActiveItemsByDate(ctx, date, s.cacheConfig.CacheLimit)
 		if err != nil {
-			s.logger.Errorf("ListTopActiveItemsByDate failed after generation for %s: %v", dateStr, err)
+			s.logger.Errorf("ListTopActiveItemsByDate failed for %s: %v", dateStr, err)
 			return nil, common.ErrInternal("cannot query top active items")
 		}
 
-		isStale = false
-	}
+		isStale := isDataStale(topItems, date)
 
-	// 6. Handle confirmed empty day: set DB sentinel is already done in GenerateDailySummary.
-	//    Here we set the cache flag so future requests skip DB entirely.
-	if isEmptyResult(topItems) {
-		s.logger.Infof("No data for %s, setting empty-day cache flag", dateStr)
-		if err := s.cacheStore.Set(
-			ctx,
-			s.cacheConfig.emptyCacheKey(dateStr),
-			"1",
-			s.cacheConfig.EmptyDayPhysicalTTL,
-		); err != nil {
-			s.logger.Warnf("Failed to set empty-day cache flag for %s: %v", dateStr, err)
+		// 2d. Generate
+		if acquired && (isToday || isStale) {
+			s.logger.Infof("Generating daily summary for %s", dateStr)
+			if err := s.GenerateDailySummary(ctx, date); err != nil {
+				s.logger.Errorf("GenerateDailySummary failed for %s: %v", dateStr, err)
+				return nil, common.ErrInternal("failed to process daily summary")
+			}
+
+			topItems, err = s.reportRepository.
+				ListTopActiveItemsByDate(ctx, date, s.cacheConfig.CacheLimit)
+			if err != nil {
+				s.logger.Errorf("ListTopActiveItemsByDate failed after generation for %s: %v", dateStr, err)
+				return nil, common.ErrInternal("cannot query top active items")
+			}
+			isStale = false
 		}
-		return s.buildResult(ctx, nil, limit, isToday)
+
+		// 2e. Handle empty result
+		if isEmptyResult(topItems) {
+			s.logger.Infof("No data for %s, setting empty-day cache flag", dateStr)
+			if err := s.cacheStore.Set(
+				ctx,
+				s.cacheConfig.emptyCacheKey(dateStr),
+				"1",
+				s.cacheConfig.EmptyDayPhysicalTTL,
+			); err != nil {
+				s.logger.Warnf("Failed to set empty-day cache flag for %s: %v", dateStr, err)
+			}
+			return &sfResult{items: nil, stale: false}, nil
+		}
+
+		// 2f. Populate cache
+		if !isStale {
+			s.cacheReport(ctx, cacheKey, topItems, now, isToday)
+		}
+
+		return &sfResult{items: topItems, stale: isStale}, nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
-	// 7. Populate cache with full ranked list + timestamp
-	if !isStale {
-		s.cacheReport(ctx, cacheKey, topItems, now, isToday)
-	}
-
-	return s.buildResult(ctx, topItems, limit, isToday)
+	res := v.(*sfResult)
+	return s.buildResult(ctx, res.items, limit, isToday)
 }
 
 // loadFromCache attempts to read and validate a cached report.

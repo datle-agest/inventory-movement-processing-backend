@@ -40,6 +40,10 @@ type ReportCacheConfig struct {
 	// Must be >= the maximum `limit` value any caller can request, otherwise
 	// responses will be silently truncated.
 	CacheLimit int
+
+	DisableCache        bool
+	DisableSingleFlight bool
+	DisableLock         bool
 }
 
 func DefaultReportCacheConfig() ReportCacheConfig {

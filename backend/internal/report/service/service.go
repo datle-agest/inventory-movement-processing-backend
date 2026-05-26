@@ -6,6 +6,8 @@ import (
 	reportEntity "inventory-movement-processing/internal/report/entity"
 	"inventory-movement-processing/pkg/logger"
 	"time"
+
+	"golang.org/x/sync/singleflight"
 )
 
 type reportRepository interface {
@@ -41,6 +43,7 @@ type reportService struct {
 	cacheStore       cacheProvider
 	cacheConfig      ReportCacheConfig
 	logger           logger.Logger
+	sfGroup          *singleflight.Group
 }
 
 func NewReportService(
@@ -58,5 +61,6 @@ func NewReportService(
 		cacheStore:       cacheStore,
 		cacheConfig:      cacheConfig,
 		logger:           logger,
+		sfGroup:          &singleflight.Group{},
 	}
 }
