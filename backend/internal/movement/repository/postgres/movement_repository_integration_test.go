@@ -309,12 +309,25 @@ func TestMovementRepo_AggregateDailyItemSummary_ShouldSumCorrectly(t *testing.T)
 
 	day := time.Date(2026, 5, 25, 8, 0, 0, 0, time.UTC)
 
-	repo.Create(ctx, makeMovement("E1", 1, entity.MovementTypeIn, 10, day))
-	repo.Create(ctx, makeMovement("E2", 1, entity.MovementTypeIn, 20, day.Add(time.Hour)))
-	repo.Create(ctx, makeMovement("E3", 1, entity.MovementTypeOut, 10, day.Add(2*time.Hour)))
-	repo.Create(ctx, makeMovement("E4", 1, entity.MovementTypeAdjust, 5, day.Add(3*time.Hour)))
-	
-	repo.Create(ctx, makeMovement("E5", 2, entity.MovementTypeIn, 50, day))
+	m1 := makeMovement("E1", 1, entity.MovementTypeIn, 10, day)
+	repo.Create(ctx, m1)
+	db.Model(m1).Update("created_at", day)
+
+	m2 := makeMovement("E2", 1, entity.MovementTypeIn, 20, day.Add(time.Hour))
+	repo.Create(ctx, m2)
+	db.Model(m2).Update("created_at", day.Add(time.Hour))
+
+	m3 := makeMovement("E3", 1, entity.MovementTypeOut, 10, day.Add(2*time.Hour))
+	repo.Create(ctx, m3)
+	db.Model(m3).Update("created_at", day.Add(2*time.Hour))
+
+	m4 := makeMovement("E4", 1, entity.MovementTypeAdjust, 5, day.Add(3*time.Hour))
+	repo.Create(ctx, m4)
+	db.Model(m4).Update("created_at", day.Add(3*time.Hour))
+
+	m5 := makeMovement("E5", 2, entity.MovementTypeIn, 50, day)
+	repo.Create(ctx, m5)
+	db.Model(m5).Update("created_at", day)
 
 	start := time.Date(2026, 5, 25, 0, 0, 0, 0, time.UTC)
 	end := start.Add(24 * time.Hour)
