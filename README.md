@@ -65,14 +65,14 @@ This system is built specifically to address these issues, guaranteeing **serial
 High-level workflow of the concurrent batch import engine, showing CSV parsing, item-based worker pool parallelization, and GORM database transaction locking with scanner ID idempotency:
 
 <p align="center">
-  <img width="930" height="590" alt="image" src="https://github.com/user-attachments/assets/8e25b3c0-4e85-4ce4-b433-6c69ecf154f9" />
+   <img width="1557" height="900" alt="image" src="https://github.com/user-attachments/assets/544a7a39-9da0-4e3e-a149-222275ee2963" />
 </p>
 
 ### 📊 2. Report ETL Flow (ETL & Redis Caching)
 High-level workflow of the daily aggregation service, highlighting the Redis caching strategy, database fallback query, and real-time low-stock alert merges:
 
 <p align="center">
-  <img width="1175" height="409" alt="image" src="https://github.com/user-attachments/assets/485c305a-1905-4365-9ecb-292452090df4" />
+   <img width="1811" height="913" alt="image" src="https://github.com/user-attachments/assets/b41fe720-569a-42c3-a6da-cad9dd3e5f39" />
 </p>
 
 ## Project Directory Structure
