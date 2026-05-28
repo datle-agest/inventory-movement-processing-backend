@@ -88,8 +88,8 @@ func TestAdjustStock_InsufficientStock_ShouldReturnBadRequest(t *testing.T) {
 		t.Fatalf("expected validation error for negative stock, got nil")
 	}
 
-	if !strings.Contains(err.Error(), entity.ErrInsufficientStock.Error()) {
-		t.Errorf("expected error to contain '%v', got '%v'", entity.ErrInsufficientStock, err)
+	if !strings.Contains(err.Error(), "insufficient stock") {
+		t.Errorf("expected error to contain 'insufficient stock', got '%v'", err)
 	}
 }
 

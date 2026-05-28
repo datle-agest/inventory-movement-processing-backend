@@ -31,7 +31,7 @@ func (h *Handler) ImportBatch() gin.HandlerFunc {
 		file, err := c.FormFile("file")
 
 		if err != nil {
-			core.WriteError(c, common.ErrBadRequest("file is required"))
+			core.WriteError(c, common.NewBadRequestError(common.CodeFileRequired, "file is required"))
 			return
 		}
 

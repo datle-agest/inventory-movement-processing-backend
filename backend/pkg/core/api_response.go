@@ -1,17 +1,18 @@
 package core
 
-import "net/http"
+import "inventory-movement-processing/common"
 
 type APIResponse struct {
-	Code       int         `json:"code" example:"200"`
-	Message    string      `json:"message,omitempty" example:"success"`
+	Code       string      `json:"code"                example:"SUCCESS"`
+	Message    string      `json:"message,omitempty"    example:"success"`
 	Result     interface{} `json:"result,omitempty"`
 	Pagination *Pagination `json:"pagination,omitempty"`
+	Details    interface{} `json:"details,omitempty"`
 }
 
 func Success(data interface{}) *APIResponse {
 	return &APIResponse{
-		Code:   http.StatusOK,
+		Code:   common.CodeSuccess,
 		Result: data,
 	}
 }
@@ -22,7 +23,7 @@ func SuccessWithMessage(
 ) *APIResponse {
 
 	return &APIResponse{
-		Code:    http.StatusOK,
+		Code:    common.CodeSuccess,
 		Message: message,
 		Result:  data,
 	}
@@ -35,7 +36,7 @@ func SuccessWithPaging(
 ) *APIResponse {
 
 	return &APIResponse{
-		Code:       http.StatusOK,
+		Code:       common.CodeSuccess,
 		Message:    message,
 		Result:     data,
 		Pagination: paging,
@@ -43,12 +44,19 @@ func SuccessWithPaging(
 }
 
 func Fail(
-	code int,
+	code string,
 	message string,
+	details ...interface{},
 ) *APIResponse {
 
-	return &APIResponse{
+	resp := &APIResponse{
 		Code:    code,
 		Message: message,
 	}
+
+	if len(details) > 0 {
+		resp.Details = details[0]
+	}
+
+	return resp
 }

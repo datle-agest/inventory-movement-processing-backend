@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"inventory-movement-processing/common"
-	"inventory-movement-processing/internal/item/entity"
 )
 
 func (s *itemService) AdjustStock(ctx context.Context, itemID int32, quantityChange int32) error {
@@ -15,7 +14,7 @@ func (s *itemService) AdjustStock(ctx context.Context, itemID int32, quantityCha
 	}
 	if item == nil {
 		s.logger.Warnf("[Service][AdjustStock] item with id %d not found", itemID)
-		return common.ErrNotFound("item not found")
+		return common.NewNotFoundError(common.CodeItemNotFound, "item not found")
 	}
 
 	// Tính tồn kho mới
@@ -25,7 +24,7 @@ func (s *itemService) AdjustStock(ctx context.Context, itemID int32, quantityCha
 	if newStock < 0 {
 		s.logger.Warnf("[Service][AdjustStock] insufficient stock for item %d. Current: %d, Change: %d, Result: %d",
 			itemID, item.CurrentStock, quantityChange, newStock)
-		return common.ErrBadRequest(entity.ErrInsufficientStock.Error())
+		return common.NewBadRequestError(common.CodeInsufficientStock, "insufficient stock")
 	}
 
 	// ghi đè quality tồn kho mới xuống DB

@@ -187,8 +187,8 @@ func TestProcessOne_DuplicateMovement_ShouldReturnStatusDuplicate(t *testing.T) 
 		t.Fatal("expected conflict error, got nil")
 	}
 
-	if !strings.Contains(err.Error(), itemEntity.ErrDuplicateMovement.Error()) {
-		t.Errorf("expected error to contain '%v', got '%v'", itemEntity.ErrDuplicateMovement, err)
+	if !strings.Contains(err.Error(), "duplicate transaction detected") {
+		t.Errorf("expected error to contain 'duplicate transaction detected', got '%v'", err)
 	}
 }
 

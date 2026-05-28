@@ -16,7 +16,7 @@ func (s *itemService) GetItem(ctx context.Context, id int32) (*entity.Item, erro
 
 	if item == nil {
 		s.logger.Warnf("[Service][GetItem] item with id %d not found", id)
-		return nil, common.ErrNotFound("item not found")
+		return nil, common.NewNotFoundError(common.CodeItemNotFound, "item not found")
 	}
 
 	return item, nil

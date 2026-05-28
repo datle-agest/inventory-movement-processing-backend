@@ -36,8 +36,8 @@ func TestCreateItem_DuplicateSKU_ShouldReturnConflict(t *testing.T) {
 		t.Fatalf("expected conflict error, got nil")
 	}
 
-	if !strings.Contains(err.Error(), entity.ErrItemDuplicated.Error()) {
-		t.Errorf("expected error to contain '%v', got '%v'", entity.ErrItemDuplicated, err)
+	if !strings.Contains(err.Error(), "duplicate SKU detected") {
+		t.Errorf("expected error to contain 'duplicate SKU detected', got '%v'", err)
 	}
 }
 

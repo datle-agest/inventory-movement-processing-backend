@@ -492,9 +492,10 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "code": {
-                    "type": "integer",
-                    "example": 200
+                    "type": "string",
+                    "example": "SUCCESS"
                 },
+                "details": {},
                 "message": {
                     "type": "string",
                     "example": "success"
@@ -509,8 +510,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "code": {
-                    "type": "integer",
-                    "example": 400
+                    "type": "string",
+                    "example": "INVALID_INPUT"
                 },
                 "message": {
                     "type": "string",
@@ -522,8 +523,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "code": {
-                    "type": "integer",
-                    "example": 409
+                    "type": "string",
+                    "example": "DUPLICATE_TRANSACTION"
                 },
                 "message": {
                     "type": "string",
@@ -535,8 +536,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "code": {
-                    "type": "integer",
-                    "example": 500
+                    "type": "string",
+                    "example": "INTERNAL_ERROR"
                 },
                 "message": {
                     "type": "string",
@@ -548,8 +549,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "code": {
-                    "type": "integer",
-                    "example": 409
+                    "type": "string",
+                    "example": "DUPLICATE_SKU"
                 },
                 "message": {
                     "type": "string",
@@ -561,8 +562,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "code": {
-                    "type": "integer",
-                    "example": 404
+                    "type": "string",
+                    "example": "ITEM_NOT_FOUND"
                 },
                 "message": {
                     "type": "string",
