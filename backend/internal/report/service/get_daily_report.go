@@ -92,7 +92,7 @@ func (s *reportService) GetDailyReport(
 		isStale := isDataStale(topItems, date)
 
 		// 2d. Regenerate if needed
-		if acquired && (isToday || isStale) {
+		if acquired && isStale {
 			s.logger.Infof("Generating daily summary for %s", dateStr)
 
 			if err := s.GenerateDailySummary(ctx, date); err != nil {
@@ -268,24 +268,18 @@ func isDataStale(
 	date time.Time,
 ) bool {
 
-	startOfDate := time.Date(
-		date.Year(),
-		date.Month(),
-		date.Day(),
-		0,
-		0,
-		0,
-		0,
-		date.Location(),
-	)
+	now := time.Now()
+	if isSameDay(now, date) {
+		return true
+	}
 
+	startOfDate := time.Date(
+		date.Year(), date.Month(), date.Day(),
+		0, 0, 0, 0, date.Location(),
+	)
 	startOfNextDay := startOfDate.AddDate(0, 0, 1)
 
-	now := time.Now()
-	isToday := isSameDay(now, date)
-
 	for _, item := range items {
-
 		if !isSameDay(item.SummaryDate, date) {
 			continue
 		}
@@ -294,14 +288,8 @@ func isDataStale(
 			return true
 		}
 
-		if isToday {
-			if item.UpdatedAt.Before(startOfDate) {
-				return true
-			}
-		} else {
-			if item.UpdatedAt.Before(startOfNextDay) {
-				return true
-			}
+		if item.UpdatedAt.Before(startOfNextDay) {
+			return true
 		}
 	}
 

@@ -9,6 +9,7 @@ import (
 	reportEntity "inventory-movement-processing/internal/report/entity"
 )
 
+// go test -bench=BenchmarkGetDailyReport -benchmem -cpu=1,4,8,16
 func BenchmarkGetDailyReport(b *testing.B) {
 	dbConnectionPool := make(chan struct{}, 10)
 
