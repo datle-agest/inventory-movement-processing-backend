@@ -57,7 +57,7 @@ This system is built specifically to address these issues, guaranteeing **serial
 
 ## Architecture
 <p align="center">
-   <img width="1517" height="661" alt="image" src="https://github.com/user-attachments/assets/86ced2ed-ec8f-43f8-adb4-cc3ec5160428" />
+   <img width="1819" height="781" alt="image" src="https://github.com/user-attachments/assets/f3be4941-0f35-4be6-8248-313ee32b5c8f" />
 </p>
 
 ## Main Flow
