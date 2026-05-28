@@ -42,9 +42,10 @@ type ReportCacheConfig struct {
 	CacheLimit int
 
 	// Use for bench mark purpose
-	DisableCache        bool
-	DisableSingleFlight bool
-	DisableLock         bool
+	DisableCache                bool
+	DisableSingleFlight         bool
+	DisableLock                 bool
+	DisableStaleWhileRevalidate bool
 }
 
 func DefaultReportCacheConfig() ReportCacheConfig {
