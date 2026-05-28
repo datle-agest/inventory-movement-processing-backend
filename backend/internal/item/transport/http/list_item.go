@@ -1,6 +1,7 @@
 package http
 
 import (
+	"inventory-movement-processing/common"
 	"inventory-movement-processing/internal/item/entity"
 	"inventory-movement-processing/pkg/core"
 	"net/http"
@@ -36,7 +37,7 @@ func (hdl handler) ListItem() gin.HandlerFunc {
 		var filter entity.ItemFilter
 
 		if err := c.ShouldBindQuery(&filter); err != nil {
-			c.JSON(http.StatusBadRequest, core.Fail(http.StatusBadRequest, err.Error()))
+			core.WriteError(c, common.ErrBadRequest(err.Error()))
 			return
 		}
 

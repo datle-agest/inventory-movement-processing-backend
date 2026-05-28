@@ -16,13 +16,13 @@ import (
 // validateFile - Kiểm tra định dạng và tính toàn vẹn của file upload
 func (s *service) validateFile(file *multipart.FileHeader) error {
 	if file == nil {
-		return common.ErrBadRequest("file is required")
+		return common.NewBadRequestError(common.CodeFileRequired, "file is required")
 	}
 	if file.Size == 0 {
-		return common.ErrBadRequest("file is empty")
+		return common.NewBadRequestError(common.CodeFileEmpty, "file is empty")
 	}
 	if !strings.HasSuffix(strings.ToLower(file.Filename), ".csv") {
-		return common.ErrBadRequest("file must be CSV format")
+		return common.NewBadRequestError(common.CodeFileMustBeCSV, "file must be CSV format")
 	}
 	return nil
 }
@@ -45,12 +45,12 @@ func extractCSVHeaders(v any) []string {
 func validateCSVHeader(actual []string) error {
 	expectedHeaders := extractCSVHeaders(entity.CsvMovementRow{})
 	if len(actual) != len(expectedHeaders) {
-		return common.ErrBadRequest("invalid csv header")
+		return common.NewBadRequestError(common.CodeInvalidCSVHeader, "invalid csv header")
 	}
 	for i, expected := range expectedHeaders {
 		actualHeader := strings.TrimSpace(actual[i])
 		if actualHeader != expected {
-			return common.ErrBadRequest("invalid csv header format")
+			return common.NewBadRequestError(common.CodeInvalidCSVHeader, "invalid csv header format")
 		}
 	}
 	return nil
@@ -62,7 +62,7 @@ func (s *service) parseCSV(src io.Reader) ([]entity.CsvMovementRow, []entity.Pro
 	// Đọc và validate hàng Header đầu tiên
 	header, err := reader.Read()
 	if err != nil {
-		return nil, nil, common.ErrBadRequest("cannot read csv header")
+		return nil, nil, common.NewBadRequestError(common.CodeInvalidCSVFormat, "cannot read csv header")
 	}
 	if err := validateCSVHeader(header); err != nil {
 		return nil, nil, err
@@ -78,7 +78,7 @@ func (s *service) parseCSV(src io.Reader) ([]entity.CsvMovementRow, []entity.Pro
 			break
 		}
 		if err != nil {
-			return nil, nil, common.ErrBadRequest("invalid csv format")
+			return nil, nil, common.NewBadRequestError(common.CodeInvalidCSVFormat, "invalid csv format")
 		}
 		rowIndex++
 		row := make(map[string]string)

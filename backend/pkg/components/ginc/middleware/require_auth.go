@@ -26,7 +26,7 @@ func AuthByRole(cfg Config, allowedRoles ...string) gin.HandlerFunc {
 
 		authHeader := c.GetHeader("Authorization")
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			core.WriteError(c, common.ErrUnauthorized("Missing or Invalid token"))
+			core.WriteError(c, common.NewUnauthorizedError(common.CodeMissingToken, "Missing or Invalid token"))
 			c.Abort()
 			return
 		}
@@ -43,7 +43,7 @@ func AuthByRole(cfg Config, allowedRoles ...string) gin.HandlerFunc {
 		} else if token == stkKey {
 			currentRole = "storekeeper"
 		} else {
-			core.WriteError(c, common.ErrUnauthorized("Invalid token"))
+			core.WriteError(c, common.NewUnauthorizedError(common.CodeInvalidToken, "Invalid token"))
 			c.Abort()
 			return
 		}
@@ -57,7 +57,7 @@ func AuthByRole(cfg Config, allowedRoles ...string) gin.HandlerFunc {
 				}
 			}
 			if !isAllowed {
-				core.WriteError(c, common.ErrForbidden("Permission denied"))
+				core.WriteError(c, common.NewForbiddenError(common.CodePermissionDenied, "Permission denied"))
 				c.Abort()
 				return
 			}

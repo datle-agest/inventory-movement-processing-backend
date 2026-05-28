@@ -36,14 +36,14 @@ func (h *reportHandler) GetDailyReport() gin.HandlerFunc {
 			var err error
 			date, err = time.Parse("2006-01-02", dateStr)
 			if err != nil {
-				core.WriteError(c, common.ErrBadRequest("invalid date format, expected YYYY-MM-DD"))
+				core.WriteError(c, common.NewBadRequestError(common.CodeInvalidDateFormat, "invalid date format, expected YYYY-MM-DD"))
 				return
 			}
 		}
 
 		limit, err := strconv.Atoi(c.DefaultQuery("limit", "5"))
 		if err != nil || limit <= 0 {
-			core.WriteError(c, common.ErrBadRequest("invalid limit, must be a positive integer"))
+			core.WriteError(c, common.NewBadRequestError(common.CodeInvalidPagination, "invalid limit, must be a positive integer"))
 			return
 		}
 

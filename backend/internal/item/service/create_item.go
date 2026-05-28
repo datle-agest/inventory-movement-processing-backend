@@ -18,7 +18,7 @@ func (s *itemService) CreateItem(ctx context.Context, data entity.CreateItemRequ
 	if err != nil {
 		if errors.Is(err, entity.ErrItemDuplicated) {
 			s.logger.Warnf("[Service][CreateItem] duplicate SKU: %s", item.SKU)
-			return nil, common.ErrConflict(err.Error())
+			return nil, common.NewConflictError(common.CodeDuplicateSKU, "duplicate SKU detected")
 		}
 		s.logger.Errorf("[Service][CreateItem] failed to create item: %v", err)
 		return nil, common.ErrInternal("failed to create item, please try again")

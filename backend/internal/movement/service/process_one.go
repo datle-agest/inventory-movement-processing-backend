@@ -27,7 +27,7 @@ func (s *service) ProcessOne(ctx context.Context, m *entity.Movement) (entity.Pr
 		case entity.MovementTypeAdjust:
 			quantityChange = m.Quantity
 		default:
-			return common.ErrBadRequest(entity.ErrInvalidType.Error())
+			return common.NewBadRequestError(common.CodeInvalidMovementType, "invalid movement type")
 		}
 
 		// UpdateStock
@@ -49,7 +49,7 @@ func (s *service) ProcessOne(ctx context.Context, m *entity.Movement) (entity.Pr
 		}
 		if errors.Is(err, itemEntity.ErrDuplicateMovement) {
 			s.logger.Warnf("[Service][ProcessOne] duplicate movement external_id: %s", m.ExternalID)
-			return entity.StatusDuplicate, common.ErrConflict(err.Error())
+			return entity.StatusDuplicate, common.NewConflictError(common.CodeDuplicateTransaction, "duplicate transaction detected")
 		}
 		s.logger.Errorf("[Service][ProcessOne] failed to create movement record: %v", err)
 		return entity.StatusRejected, common.ErrInternal("cannot process movement, please try again")

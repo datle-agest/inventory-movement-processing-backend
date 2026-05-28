@@ -3,8 +3,9 @@ definitions:
   core.APIResponse:
     properties:
       code:
-        example: 200
-        type: integer
+        example: SUCCESS
+        type: string
+      details: {}
       message:
         example: success
         type: string
@@ -15,8 +16,8 @@ definitions:
   core.ErrResponseBadRequest:
     properties:
       code:
-        example: 400
-        type: integer
+        example: INVALID_INPUT
+        type: string
       message:
         example: invalid request
         type: string
@@ -24,8 +25,8 @@ definitions:
   core.ErrResponseConflict:
     properties:
       code:
-        example: 409
-        type: integer
+        example: DUPLICATE_TRANSACTION
+        type: string
       message:
         example: duplicate transaction detected
         type: string
@@ -33,8 +34,8 @@ definitions:
   core.ErrResponseInternal:
     properties:
       code:
-        example: 500
-        type: integer
+        example: INTERNAL_ERROR
+        type: string
       message:
         example: internal server error
         type: string
@@ -42,8 +43,8 @@ definitions:
   core.ErrResponseItemConflict:
     properties:
       code:
-        example: 409
-        type: integer
+        example: DUPLICATE_SKU
+        type: string
       message:
         example: duplicate SKU detected
         type: string
@@ -51,8 +52,8 @@ definitions:
   core.ErrResponseItemNotFound:
     properties:
       code:
-        example: 404
-        type: integer
+        example: ITEM_NOT_FOUND
+        type: string
       message:
         example: item not found
         type: string

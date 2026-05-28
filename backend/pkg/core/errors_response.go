@@ -15,10 +15,10 @@ func WriteError(c *gin.Context, err error) {
 		if appErr.StatusCode == http.StatusInternalServerError {
 			fmt.Printf("[ERROR] %s: %v\n", c.Request.URL.Path, err)
 		}
-		c.JSON(appErr.StatusCode, Fail(appErr.StatusCode, appErr.Message))
+		c.JSON(appErr.StatusCode, Fail(appErr.Code, appErr.Message, appErr.Details))
 		return
 	}
 	// err nào không phải AppError log lại xem bug
 	fmt.Printf("[ERROR] unhandled error %s: %v\n", c.Request.URL.Path, err)
-	c.JSON(http.StatusInternalServerError, Fail(http.StatusInternalServerError, "internal server error"))
+	c.JSON(http.StatusInternalServerError, Fail(common.CodeInternalError, "internal server error"))
 }

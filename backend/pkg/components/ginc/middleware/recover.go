@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"inventory-movement-processing/common"
 	"inventory-movement-processing/pkg/core"
 	sctx "inventory-movement-processing/pkg/service_context"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 
 type CanGetStatusCode interface {
 	HttpStatusCode() int
+	GetCode() string
 	Error() string
 }
 
@@ -29,7 +31,7 @@ func Recovery(serviceCtx sctx.ServiceContext) gin.HandlerFunc {
 					c.AbortWithStatusJSON(
 						appErr.HttpStatusCode(),
 						core.Fail(
-							appErr.HttpStatusCode(),
+							appErr.GetCode(),
 							appErr.Error(),
 						),
 					)
@@ -37,7 +39,7 @@ func Recovery(serviceCtx sctx.ServiceContext) gin.HandlerFunc {
 					c.AbortWithStatusJSON(
 						http.StatusInternalServerError,
 						core.Fail(
-							http.StatusInternalServerError,
+							common.CodeInternalError,
 							"something went wrong",
 						),
 					)
