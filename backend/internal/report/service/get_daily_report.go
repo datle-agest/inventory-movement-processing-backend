@@ -130,7 +130,7 @@ func (s *reportService) GetDailyReport(
 		}
 
 		// 2e. Handle empty result
-		if isEmptyResult(topItems) {
+		if isEmptyResult(topItems) && !isToday {
 			s.logger.Infof("No data for %s", dateStr)
 
 			if !s.cacheConfig.DisableCache {
