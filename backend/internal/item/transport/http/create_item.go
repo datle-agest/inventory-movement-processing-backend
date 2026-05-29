@@ -1,6 +1,7 @@
 package http
 
 import (
+	"inventory-movement-processing/common"
 	"inventory-movement-processing/internal/item/entity"
 	"inventory-movement-processing/pkg/core"
 	"net/http"
@@ -29,7 +30,7 @@ func (hdl handler) CreateItem() gin.HandlerFunc {
 		var item entity.CreateItemRequest
 
 		if err := c.ShouldBind(&item); err != nil {
-			core.WriteError(c, err)
+			core.WriteError(c, common.ErrBadRequest(err.Error()))
 			return
 		}
 

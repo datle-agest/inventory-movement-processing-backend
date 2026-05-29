@@ -44,21 +44,12 @@ const (
 	CodeInternalError = "INTERNAL_ERROR"
 )
 
-// ─── Validation Detail ───────────────────────────────────────────────────────
-
-// FieldError represents a single field-level validation error, used in the "details" array.
-type FieldError struct {
-	Field  string `json:"field"  example:"date"`
-	Reason string `json:"reason" example:"invalid format, expected YYYY-MM-DD"`
-}
-
 // ─── AppError ────────────────────────────────────────────────────────────────
 
 type AppError struct {
-	StatusCode int          `json:"-"`
-	Code       string       `json:"code"`
-	Message    string       `json:"message"`
-	Details    []FieldError `json:"details,omitempty"`
+	StatusCode int    `json:"-"`
+	Code       string `json:"code"`
+	Message    string `json:"message"`
 }
 
 func (e *AppError) Error() string { return e.Message }
@@ -66,12 +57,6 @@ func (e *AppError) Error() string { return e.Message }
 func (e *AppError) HttpStatusCode() int { return e.StatusCode }
 
 func (e *AppError) GetCode() string { return e.Code }
-
-// WithDetails appends field-level validation errors.
-func (e *AppError) WithDetails(details ...FieldError) *AppError {
-	e.Details = append(e.Details, details...)
-	return e
-}
 
 // ─── Custom Error Constructors ───────────────────────────────────────────────
 // Use these to create errors with specific error codes.

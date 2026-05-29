@@ -15,7 +15,7 @@ func WriteError(c *gin.Context, err error) {
 		if appErr.StatusCode == http.StatusInternalServerError {
 			fmt.Printf("[ERROR] %s: %v\n", c.Request.URL.Path, err)
 		}
-		c.JSON(appErr.StatusCode, Fail(appErr.Code, appErr.Message, appErr.Details))
+		c.JSON(appErr.StatusCode, Fail(appErr.Code, appErr.Message))
 		return
 	}
 	// err nào không phải AppError log lại xem bug
