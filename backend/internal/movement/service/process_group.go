@@ -32,7 +32,7 @@ func (s *service) ProcessItemGroup(ctx context.Context, itemID int32, rows []ent
 		}
 
 		// 2. Duplicate Pre-check
-		externalIDs := s.collectExternalIDs(rows)
+		externalIDs := collectExternalIDs(rows)
 		existingMap, err := s.checkExistingDuplicates(txCtx, externalIDs)
 		if err != nil {
 			return err
@@ -81,8 +81,9 @@ func (s *service) lockItemForProcessing(ctx context.Context, itemID int32) (*ite
 	return item, nil
 }
 
-func (s *service) collectExternalIDs(rows []entity.CsvMovementRow) []string {
-	var externalIDs []string
+// collectExternalIDs is a pure function — no service dependency needed
+func collectExternalIDs(rows []entity.CsvMovementRow) []string {
+	externalIDs := make([]string, 0, len(rows))
 	for _, r := range rows {
 		externalIDs = append(externalIDs, r.ExternalID)
 	}
@@ -96,13 +97,12 @@ func (s *service) checkExistingDuplicates(ctx context.Context, externalIDs []str
 		return nil, err
 	}
 
-	existingMap := make(map[string]bool)
+	existingMap := make(map[string]bool, len(existingDBExternalIDs))
 	for _, id := range existingDBExternalIDs {
 		existingMap[id] = true
 	}
 	return existingMap, nil
 }
-
 
 func (s *service) updateFinalStock(ctx context.Context, itemID int32, finalStock int32) error {
 	if err := s.itemService.UpdateStock(ctx, itemID, finalStock); err != nil {
@@ -120,23 +120,6 @@ func (s *service) bulkInsertMovements(ctx context.Context, movements []*entity.M
 	return nil
 }
 
-func (s *service) createRejectedResult(r entity.CsvMovementRow, status entity.ProcessStatus, reason string) entity.ProcessResult {
-	return entity.ProcessResult{
-		RowIndex:    r.RowIndex,
-		ExternalID:  r.ExternalID,
-		Status:      status,
-		ErrorReason: reason,
-	}
-}
-
-func (s *service) createAcceptedResult(r entity.CsvMovementRow) entity.ProcessResult {
-	return entity.ProcessResult{
-		RowIndex:   r.RowIndex,
-		ExternalID: r.ExternalID,
-		Status:     entity.StatusAccepted,
-	}
-}
-
 func (s *service) createSystemFailureResults(rows []entity.CsvMovementRow, err error) []entity.ProcessResult {
 	var failedResults []entity.ProcessResult
 
@@ -147,7 +130,7 @@ func (s *service) createSystemFailureResults(rows []entity.CsvMovementRow, err e
 	}
 
 	for _, r := range rows {
-		failedResults = append(failedResults, s.createRejectedResult(r, entity.StatusRejected, appErr.Message))
+		failedResults = append(failedResults, entity.NewRejectedResult(r, entity.StatusRejected, appErr.Message))
 	}
 	return failedResults
 }

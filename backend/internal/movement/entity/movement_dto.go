@@ -1,6 +1,8 @@
 package entity
 
-import "time"
+import (
+	"time"
+)
 
 type ProcessStatus string
 
@@ -33,4 +35,35 @@ type ImportBatchResult struct {
 	Rejected   int             `json:"rejected" example:"1"`
 	Duplicate  int             `json:"duplicate" example:"0"`
 	FailedRows []ProcessResult `json:"failed_rows"`
+}
+
+// NewMovementFromCSV maps a CsvMovementRow to a Movement entity.
+func NewMovementFromCSV(r CsvMovementRow) *Movement {
+	return &Movement{
+		ExternalID:   r.ExternalID,
+		ItemID:       r.ItemID,
+		Type:         r.Type,
+		Quantity:     r.Quantity,
+		MovementTime: r.MovementTime,
+		Note:         &r.Note,
+	}
+}
+
+// NewAcceptedResult creates a ProcessResult with StatusAccepted.
+func NewAcceptedResult(r CsvMovementRow) ProcessResult {
+	return ProcessResult{
+		RowIndex:   r.RowIndex,
+		ExternalID: r.ExternalID,
+		Status:     StatusAccepted,
+	}
+}
+
+// NewRejectedResult creates a ProcessResult with the given status and error reason.
+func NewRejectedResult(r CsvMovementRow, status ProcessStatus, reason string) ProcessResult {
+	return ProcessResult{
+		RowIndex:    r.RowIndex,
+		ExternalID:  r.ExternalID,
+		Status:      status,
+		ErrorReason: reason,
+	}
 }
