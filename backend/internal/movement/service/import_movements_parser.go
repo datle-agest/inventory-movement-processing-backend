@@ -7,7 +7,6 @@ import (
 	"io"
 	"mime/multipart"
 	"reflect"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -146,9 +145,5 @@ func (s *service) parseCSV(src io.Reader) ([]entity.CsvMovementRow, []entity.Pro
 		}
 		rows = append(rows, csvRow)
 	}
-	// Sắp xếp các hàng theo trình tự thời gian xảy ra nghiệp vụ
-	sort.Slice(rows, func(i, j int) bool {
-		return rows[i].MovementTime.Before(rows[j].MovementTime)
-	})
 	return rows, failedRows, nil
 }

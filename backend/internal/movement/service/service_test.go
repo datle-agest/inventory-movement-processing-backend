@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	itemEntity "inventory-movement-processing/internal/item/entity"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
 	reportEntity "inventory-movement-processing/internal/report/entity"
 	"inventory-movement-processing/pkg/components/workerc"
@@ -14,7 +15,10 @@ import (
 type mockMovementRepo struct {
 	getMovementsByItemIDFn                  func(ctx context.Context, itemId int, paging *core.Pagination) ([]*movementEntity.Movement, error)
 	createFn                                func(ctx context.Context, movement *movementEntity.Movement) error
+	createBatchFn                           func(ctx context.Context, movements []*movementEntity.Movement) error
+	getExistingExternalIDsFn                func(ctx context.Context, externalIDs []string) ([]string, error)
 	aggregateDailyItemSummaryFromMovementFn func(ctx context.Context, start time.Time, end time.Time) ([]*reportEntity.DailyItemSummary, error)
+	setLockTimeoutFn                        func(ctx context.Context, timeout string) error
 }
 
 func (m *mockMovementRepo) GetMovementsByItemID(ctx context.Context, itemId int, paging *core.Pagination) ([]*movementEntity.Movement, error) {
@@ -23,17 +27,50 @@ func (m *mockMovementRepo) GetMovementsByItemID(ctx context.Context, itemId int,
 func (m *mockMovementRepo) Create(ctx context.Context, movement *movementEntity.Movement) error {
 	return m.createFn(ctx, movement)
 }
+func (m *mockMovementRepo) CreateBatch(ctx context.Context, movements []*movementEntity.Movement) error {
+	if m.createBatchFn != nil {
+		return m.createBatchFn(ctx, movements)
+	}
+	return nil
+}
+func (m *mockMovementRepo) GetExistingExternalIDs(ctx context.Context, externalIDs []string) ([]string, error) {
+	if m.getExistingExternalIDsFn != nil {
+		return m.getExistingExternalIDsFn(ctx, externalIDs)
+	}
+	return nil, nil
+}
 func (m *mockMovementRepo) AggregateDailyItemSummaryFromMovement(ctx context.Context, start time.Time, end time.Time) ([]*reportEntity.DailyItemSummary, error) {
 	return m.aggregateDailyItemSummaryFromMovementFn(ctx, start, end)
 }
 
+func (m *mockMovementRepo) SetLockTimeout(ctx context.Context, timeout string) error {
+	if m.setLockTimeoutFn != nil {
+		return m.setLockTimeoutFn(ctx, timeout)
+	}
+	return nil
+}
+
 // --- mockItemService ---
 type mockItemService struct {
-	adjustStockFn func(ctx context.Context, itemID int32, quantityChange int32) error
+	adjustStockFn      func(ctx context.Context, itemID int32, quantityChange int32) error
+	getItemForUpdateFn func(ctx context.Context, id int32) (*itemEntity.Item, error)
+	updateStockFn      func(ctx context.Context, itemID int32, newStock int32) error
 }
 
 func (m *mockItemService) AdjustStock(ctx context.Context, itemID int32, quantityChange int32) error {
 	return m.adjustStockFn(ctx, itemID, quantityChange)
+}
+func (m *mockItemService) GetItemForUpdate(ctx context.Context, id int32) (*itemEntity.Item, error) {
+	if m.getItemForUpdateFn != nil {
+		return m.getItemForUpdateFn(ctx, id)
+	}
+	return nil, nil
+}
+func (m *mockItemService) UpdateStock(ctx context.Context, itemID int32, newStock int32) error {
+	if m.updateStockFn != nil {
+		return m.updateStockFn(ctx, itemID, newStock)
+	}
+	return nil
 }
 
 // --- mockTxManager — implements common.TxManager ---

@@ -49,3 +49,21 @@ func (r *movementRepository) GetMovementsByItemID(ctx context.Context, itemId in
 
 	return movements, err
 }
+
+func (r *movementRepository) GetExistingExternalIDs(ctx context.Context, externalIDs []string) ([]string, error) {
+	if len(externalIDs) == 0 {
+		return nil, nil
+	}
+	
+	var existingIDs []string
+	err := r.db.WithContext(ctx).
+		Model(&entity.Movement{}).
+		Where("external_id IN ?", externalIDs).
+		Pluck("external_id", &existingIDs).Error
+		
+	if err != nil {
+		return nil, err
+	}
+	
+	return existingIDs, nil
+}

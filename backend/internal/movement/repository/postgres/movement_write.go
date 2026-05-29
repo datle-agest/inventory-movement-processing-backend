@@ -28,11 +28,21 @@ func (r *movementRepository) Create(ctx context.Context, movement *movementEntit
 
 // CreateBatch - Tạo nhiều movements cùng lúc
 func (r *movementRepository) CreateBatch(ctx context.Context, movements []*movementEntity.Movement) error {
-	if err := r.db.WithContext(ctx).CreateInBatches(movements, 100).Error; err != nil {
+	db := gormc.GetDB(ctx, r.db)
+	if err := db.WithContext(ctx).CreateInBatches(movements, 100).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return itemEntity.ErrDuplicateMovement
 		}
 		return err
 	}
 	return nil
+}
+
+// SetLockTimeout configures the lock timeout for the current transaction
+func (r *movementRepository) SetLockTimeout(ctx context.Context, timeout string) error {
+	db := gormc.GetDB(ctx, r.db)
+	// Using Sprintf because SET command parameters cannot be parameterized in pgx natively
+	// The timeout variable should be trusted internal constant like "3s"
+	query := "SET LOCAL lock_timeout = '" + timeout + "';"
+	return db.WithContext(ctx).Exec(query).Error
 }

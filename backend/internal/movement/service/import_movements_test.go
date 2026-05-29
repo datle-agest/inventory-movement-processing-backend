@@ -12,6 +12,7 @@ import (
 
 	itemEntity "inventory-movement-processing/internal/item/entity"
 	"inventory-movement-processing/internal/movement/entity"
+	"inventory-movement-processing/pkg/core"
 )
 
 // =========================================================================
@@ -98,12 +99,18 @@ func TestImportBatch_AllValidRows_ShouldReturnAllSuccess(t *testing.T) {
 	fileHeader := buildFileHeader("data.csv", validCSV3Rows())
 
 	mockRepo := &mockMovementRepo{
-		createFn: func(ctx context.Context, m *entity.Movement) error {
+		getExistingExternalIDsFn: func(ctx context.Context, externalIDs []string) ([]string, error) {
+			return nil, nil
+		},
+		createBatchFn: func(ctx context.Context, movements []*entity.Movement) error {
 			return nil
 		},
 	}
 	mockItemSvc := &mockItemService{
-		adjustStockFn: func(ctx context.Context, itemID int32, quantityChange int32) error {
+		getItemForUpdateFn: func(ctx context.Context, id int32) (*itemEntity.Item, error) {
+			return &itemEntity.Item{SQLModel: core.SQLModel{ID: id}, CurrentStock: 100}, nil
+		},
+		updateStockFn: func(ctx context.Context, itemID int32, newStock int32) error {
 			return nil
 		},
 	}
@@ -139,8 +146,10 @@ func TestImportBatch_AllValidRows_ShouldReturnAllSuccess(t *testing.T) {
 
 // =========================================================================
 // TEST CASE 4: repo.Create returns ErrDuplicateMovement
-//             -> ProcessOne maps it to StatusDuplicate
-//             -> ImportBatch increments Duplicate counter and appends to FailedRows
+//
+//	-> ProcessOne maps it to StatusDuplicate
+//	-> ImportBatch increments Duplicate counter and appends to FailedRows
+//
 // =========================================================================
 func TestImportBatch_DuplicateExternalID_ShouldCountDuplicates(t *testing.T) {
 	// 2 rows with the same item_id=1; the second row triggers a duplicate key error
@@ -152,18 +161,19 @@ func TestImportBatch_DuplicateExternalID_ShouldCountDuplicates(t *testing.T) {
 
 	fileHeader := buildFileHeader("data.csv", csv)
 
-	callCount := 0
 	mockRepo := &mockMovementRepo{
-		createFn: func(ctx context.Context, m *entity.Movement) error {
-			callCount++
-			if callCount > 1 {
-				return itemEntity.ErrDuplicateMovement
-			}
+		getExistingExternalIDsFn: func(ctx context.Context, externalIDs []string) ([]string, error) {
+			return nil, nil // Intra-batch check will catch the duplicate
+		},
+		createBatchFn: func(ctx context.Context, movements []*entity.Movement) error {
 			return nil
 		},
 	}
 	mockItemSvc := &mockItemService{
-		adjustStockFn: func(ctx context.Context, itemID int32, quantityChange int32) error {
+		getItemForUpdateFn: func(ctx context.Context, id int32) (*itemEntity.Item, error) {
+			return &itemEntity.Item{SQLModel: core.SQLModel{ID: id}, CurrentStock: 100}, nil
+		},
+		updateStockFn: func(ctx context.Context, itemID int32, newStock int32) error {
 			return nil
 		},
 	}
@@ -203,8 +213,10 @@ func TestImportBatch_DuplicateExternalID_ShouldCountDuplicates(t *testing.T) {
 
 // =========================================================================
 // TEST CASE 5: AdjustStock returns ErrInsufficientStock
-//             -> not an AppError and not ErrDuplicateMovement
-//             -> ProcessOne falls into the internal error branch -> StatusRejected
+//
+//	-> not an AppError and not ErrDuplicateMovement
+//	-> ProcessOne falls into the internal error branch -> StatusRejected
+//
 // =========================================================================
 func TestImportBatch_InsufficientStock_ShouldCountRejected(t *testing.T) {
 	csv := strings.Join([]string{
@@ -215,13 +227,19 @@ func TestImportBatch_InsufficientStock_ShouldCountRejected(t *testing.T) {
 	fileHeader := buildFileHeader("data.csv", csv)
 
 	mockRepo := &mockMovementRepo{
-		createFn: func(ctx context.Context, m *entity.Movement) error {
+		getExistingExternalIDsFn: func(ctx context.Context, externalIDs []string) ([]string, error) {
+			return nil, nil
+		},
+		createBatchFn: func(ctx context.Context, movements []*entity.Movement) error {
 			return nil
 		},
 	}
 	mockItemSvc := &mockItemService{
-		adjustStockFn: func(ctx context.Context, itemID int32, quantityChange int32) error {
-			return itemEntity.ErrInsufficientStock
+		getItemForUpdateFn: func(ctx context.Context, id int32) (*itemEntity.Item, error) {
+			return &itemEntity.Item{SQLModel: core.SQLModel{ID: id}, CurrentStock: 100}, nil
+		},
+		updateStockFn: func(ctx context.Context, itemID int32, newStock int32) error {
+			return nil
 		},
 	}
 
@@ -264,8 +282,10 @@ func TestImportBatch_InsufficientStock_ShouldCountRejected(t *testing.T) {
 
 // =========================================================================
 // TEST CASE 6: Row fails Movement.Validate() due to quantity=0
-//             -> ProcessOne returns StatusRejected + ErrBadRequest before entering the transaction
-//             -> repo.Create must NOT be called
+//
+//	-> ProcessOne returns StatusRejected + ErrBadRequest before entering the transaction
+//	-> repo.Create must NOT be called
+//
 // =========================================================================
 func TestImportBatch_InvalidQuantity_ShouldBeRejectedByValidation(t *testing.T) {
 	csv := strings.Join([]string{
@@ -277,13 +297,19 @@ func TestImportBatch_InvalidQuantity_ShouldBeRejectedByValidation(t *testing.T) 
 
 	repoCalled := false
 	mockRepo := &mockMovementRepo{
-		createFn: func(ctx context.Context, m *entity.Movement) error {
+		getExistingExternalIDsFn: func(ctx context.Context, externalIDs []string) ([]string, error) {
+			return nil, nil
+		},
+		createBatchFn: func(ctx context.Context, movements []*entity.Movement) error {
 			repoCalled = true
 			return nil
 		},
 	}
 	mockItemSvc := &mockItemService{
-		adjustStockFn: func(ctx context.Context, itemID int32, quantityChange int32) error {
+		getItemForUpdateFn: func(ctx context.Context, id int32) (*itemEntity.Item, error) {
+			return &itemEntity.Item{SQLModel: core.SQLModel{ID: id}, CurrentStock: 100}, nil
+		},
+		updateStockFn: func(ctx context.Context, itemID int32, newStock int32) error {
 			return nil
 		},
 	}
@@ -315,7 +341,9 @@ func TestImportBatch_InvalidQuantity_ShouldBeRejectedByValidation(t *testing.T) 
 
 // =========================================================================
 // TEST CASE 7: Mixed results — 1 success, 1 duplicate, 1 rejected
-//             -> each counter and FailedRows must be summarized correctly
+//
+//	-> each counter and FailedRows must be summarized correctly
+//
 // =========================================================================
 func TestImportBatch_MixedResults_ShouldSummarizeCorrectly(t *testing.T) {
 	csv := strings.Join([]string{
@@ -328,18 +356,26 @@ func TestImportBatch_MixedResults_ShouldSummarizeCorrectly(t *testing.T) {
 	fileHeader := buildFileHeader("data.csv", csv)
 
 	mockRepo := &mockMovementRepo{
-		createFn: func(ctx context.Context, m *entity.Movement) error {
-			if m.ExternalID == "EXT-DUP" {
-				return itemEntity.ErrDuplicateMovement
+		getExistingExternalIDsFn: func(ctx context.Context, externalIDs []string) ([]string, error) {
+			for _, id := range externalIDs {
+				if id == "EXT-DUP" {
+					return []string{"EXT-DUP"}, nil
+				}
 			}
+			return nil, nil
+		},
+		createBatchFn: func(ctx context.Context, movements []*entity.Movement) error {
 			return nil
 		},
 	}
 	mockItemSvc := &mockItemService{
-		adjustStockFn: func(ctx context.Context, itemID int32, quantityChange int32) error {
-			if itemID == 3 {
-				return itemEntity.ErrInsufficientStock
+		getItemForUpdateFn: func(ctx context.Context, id int32) (*itemEntity.Item, error) {
+			if id == 3 {
+				return &itemEntity.Item{SQLModel: core.SQLModel{ID: id}, CurrentStock: 0}, nil
 			}
+			return &itemEntity.Item{SQLModel: core.SQLModel{ID: id}, CurrentStock: 100}, nil
+		},
+		updateStockFn: func(ctx context.Context, itemID int32, newStock int32) error {
 			return nil
 		},
 	}
@@ -375,7 +411,9 @@ func TestImportBatch_MixedResults_ShouldSummarizeCorrectly(t *testing.T) {
 
 // =========================================================================
 // TEST CASE 8: Rows with the same item_id must be processed sequentially
-//             -> order within the same worker group must be preserved
+//
+//	-> order within the same worker group must be preserved
+//
 // =========================================================================
 func TestImportBatch_SameItemRows_ShouldProcessSequentially(t *testing.T) {
 	csv := strings.Join([]string{
@@ -391,15 +429,23 @@ func TestImportBatch_SameItemRows_ShouldProcessSequentially(t *testing.T) {
 	var processOrder []string
 
 	mockRepo := &mockMovementRepo{
-		createFn: func(ctx context.Context, m *entity.Movement) error {
+		getExistingExternalIDsFn: func(ctx context.Context, externalIDs []string) ([]string, error) {
+			return nil, nil
+		},
+		createBatchFn: func(ctx context.Context, movements []*entity.Movement) error {
 			mu.Lock()
-			processOrder = append(processOrder, m.ExternalID)
+			for _, m := range movements {
+				processOrder = append(processOrder, m.ExternalID)
+			}
 			mu.Unlock()
 			return nil
 		},
 	}
 	mockItemSvc := &mockItemService{
-		adjustStockFn: func(ctx context.Context, itemID int32, quantityChange int32) error {
+		getItemForUpdateFn: func(ctx context.Context, id int32) (*itemEntity.Item, error) {
+			return &itemEntity.Item{SQLModel: core.SQLModel{ID: id}, CurrentStock: 100}, nil
+		},
+		updateStockFn: func(ctx context.Context, itemID int32, newStock int32) error {
 			return nil
 		},
 	}
