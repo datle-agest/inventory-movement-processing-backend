@@ -211,17 +211,13 @@ func TestParseCSV_RowValidationFailures_ShouldCaptureInFailedRows(t *testing.T) 
 // =========================================================================
 // TEST CASE 8: Success Flow -> Should Parse and Sort by Chronological Order
 // =========================================================================
-func TestParseCSV_Success_ShouldParseAndSortChronologically(t *testing.T) {
+func TestParseCSV_Success_ShouldParseCorrectly(t *testing.T) {
 	mockLog := &mockLogger{}
 	svc := newMovementService(nil, nil, nil, nil, mockLog).(*service)
 
 	headers := extractCSVHeaders(entity.CsvMovementRow{})
 	headerLine := strings.Join(headers, ",")
 
-	// Insert items out of chronological order to test sorting mechanism
-	// Row 2: 10:00:00 (Latest)
-	// Row 3: 08:00:00 (Earliest)
-	// Row 4: 09:00:00 (Middle)
 	csvContent := headerLine + "\n" +
 		"EXT-AAA,501,IN,100,2026-05-25T10:00:00Z,Late item block\n" +
 		"EXT-BBB,502,OUT,20,2026-05-25T08:00:00Z,Early item block\n" +
@@ -243,23 +239,23 @@ func TestParseCSV_Success_ShouldParseAndSortChronologically(t *testing.T) {
 		t.Fatalf("expected exactly 3 successfully parsed entries, got %d", len(validRows))
 	}
 
-	expectedTime0, _ := time.Parse(time.RFC3339, "2026-05-25T08:00:00Z")
-	expectedTime1, _ := time.Parse(time.RFC3339, "2026-05-25T09:00:00Z")
-	expectedTime2, _ := time.Parse(time.RFC3339, "2026-05-25T10:00:00Z")
+	expectedTime0, _ := time.Parse(time.RFC3339, "2026-05-25T10:00:00Z")
+	expectedTime1, _ := time.Parse(time.RFC3339, "2026-05-25T08:00:00Z")
+	expectedTime2, _ := time.Parse(time.RFC3339, "2026-05-25T09:00:00Z")
 
-	if !validRows[0].MovementTime.Equal(expectedTime0) || validRows[0].ExternalID != "EXT-BBB" {
-		t.Errorf("expected index 0 to contain earliest event (EXT-BBB), got: %s", validRows[0].ExternalID)
+	if !validRows[0].MovementTime.Equal(expectedTime0) || validRows[0].ExternalID != "EXT-AAA" {
+		t.Errorf("expected index 0 to contain EXT-AAA, got: %s", validRows[0].ExternalID)
 	}
 
-	if !validRows[1].MovementTime.Equal(expectedTime1) || validRows[1].ExternalID != "EXT-CCC" {
-		t.Errorf("expected index 1 to contain intermediate event (EXT-CCC), got: %s", validRows[1].ExternalID)
+	if !validRows[1].MovementTime.Equal(expectedTime1) || validRows[1].ExternalID != "EXT-BBB" {
+		t.Errorf("expected index 1 to contain EXT-BBB, got: %s", validRows[1].ExternalID)
 	}
 
-	if !validRows[2].MovementTime.Equal(expectedTime2) || validRows[2].ExternalID != "EXT-AAA" {
-		t.Errorf("expected index 2 to contain latest event (EXT-AAA), got: %s", validRows[2].ExternalID)
+	if !validRows[2].MovementTime.Equal(expectedTime2) || validRows[2].ExternalID != "EXT-CCC" {
+		t.Errorf("expected index 2 to contain EXT-CCC, got: %s", validRows[2].ExternalID)
 	}
 
-	if validRows[0].ItemID != 502 || validRows[0].Quantity != 20 || validRows[0].Type != "OUT" {
+	if validRows[1].ItemID != 502 || validRows[1].Quantity != 20 || validRows[1].Type != "OUT" {
 		t.Errorf("data conversions failed to map values onto target struct cleanly")
 	}
 }

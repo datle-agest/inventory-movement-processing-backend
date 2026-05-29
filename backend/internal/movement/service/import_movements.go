@@ -6,6 +6,7 @@ import (
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/internal/movement/entity"
 	"mime/multipart"
+	"sort"
 	"sync"
 )
 
@@ -36,6 +37,11 @@ func (s *service) ImportBatch(ctx context.Context, file *multipart.FileHeader) (
 		s.logger.Errorf("[Service][ImportBatch] failed to parse CSV file: %v", err)
 		return entity.ImportBatchResult{}, common.ErrInternal("failed to parse CSV file")
 	}
+
+	// global sort by movement_time ASC
+	sort.SliceStable(validRows, func(i, j int) bool {
+		return validRows[i].MovementTime.Before(validRows[j].MovementTime)
+	})
 
 	// group by item_id
 	groupedRows := s.groupRowsByItem(validRows)
@@ -70,41 +76,18 @@ func (s *service) runImportWorkers(ctx context.Context, grouped map[int32][]enti
 	var wg sync.WaitGroup
 
 	// Submit one job per item group
-	// Movements of same item processed sequentially
+	// Movements of same item processed sequentially within a transaction
 	// Different items processed concurrently
-	for _, itemRows := range grouped {
+	for itemID, itemRows := range grouped {
 
 		rows := itemRows
+		id := itemID
 		wg.Add(1)
 		s.workerPool.Submit(func() {
 			defer wg.Done()
-			// sequential within same item
-			for _, r := range rows {
-
-				movement := &entity.Movement{
-					ExternalID:   r.ExternalID,
-					ItemID:       r.ItemID,
-					Type:         r.Type,
-					Quantity:     r.Quantity,
-					MovementTime: r.MovementTime,
-					Note:         &r.Note,
-				}
-
-				status, err := s.ProcessOne(
-					ctx,
-					movement,
-				)
-
-				res := entity.ProcessResult{
-					RowIndex:   r.RowIndex,
-					ExternalID: r.ExternalID,
-					Status:     status,
-				}
-
-				if err != nil {
-					res.ErrorReason = err.Error()
-				}
-
+			
+			results := s.ProcessItemGroup(ctx, id, rows)
+			for _, res := range results {
 				resultCh <- res
 			}
 		})
