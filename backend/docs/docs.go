@@ -495,7 +495,6 @@ const docTemplate = `{
                     "type": "string",
                     "example": "SUCCESS"
                 },
-                "details": {},
                 "message": {
                     "type": "string",
                     "example": "success"

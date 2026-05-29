@@ -53,7 +53,7 @@ func (h *reportHandler) GetDailyReport() gin.HandlerFunc {
 			limit,
 		)
 		if err != nil {
-			core.WriteError(c, common.ErrInternal(err.Error()))
+			core.WriteError(c, err)
 			return
 		}
 

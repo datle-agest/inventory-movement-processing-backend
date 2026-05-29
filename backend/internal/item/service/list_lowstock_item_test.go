@@ -33,9 +33,10 @@ func TestListLowStockItems_RepositoryError_ShouldReturnInternalError(t *testing.
 		t.Fatalf("expected internal error, got nil")
 	}
 
-	// Đảm bảo thông tin lỗi thô từ dbErr được bọc qua common.ErrInternal (theo logic err.Error())
-	if !strings.Contains(err.Error(), dbErr.Error()) {
-		t.Errorf("expected error message to contain '%s', got '%v'", dbErr.Error(), err)
+	// Đảm bảo thông tin lỗi thô từ dbErr được bọc qua common.ErrInternal và bị che đi bằng message chung
+	expectedMsg := "failed to fetch low stock items"
+	if !strings.Contains(err.Error(), expectedMsg) {
+		t.Errorf("expected error message to contain '%s', got '%v'", expectedMsg, err)
 	}
 }
 

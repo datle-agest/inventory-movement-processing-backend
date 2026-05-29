@@ -5,7 +5,6 @@ definitions:
       code:
         example: SUCCESS
         type: string
-      details: {}
       message:
         example: success
         type: string

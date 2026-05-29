@@ -7,7 +7,6 @@ type APIResponse struct {
 	Message    string      `json:"message,omitempty"    example:"success"`
 	Result     interface{} `json:"result,omitempty"`
 	Pagination *Pagination `json:"pagination,omitempty"`
-	Details    interface{} `json:"details,omitempty"`
 }
 
 func Success(data interface{}) *APIResponse {
@@ -46,17 +45,10 @@ func SuccessWithPaging(
 func Fail(
 	code string,
 	message string,
-	details ...interface{},
 ) *APIResponse {
 
-	resp := &APIResponse{
+	return &APIResponse{
 		Code:    code,
 		Message: message,
 	}
-
-	if len(details) > 0 {
-		resp.Details = details[0]
-	}
-
-	return resp
 }

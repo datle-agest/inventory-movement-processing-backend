@@ -10,7 +10,7 @@ func (s *itemService) ListLowStockItems(ctx context.Context) ([]*entity.Item, er
 	items, err := s.repo.ListLowStockItems(ctx)
 	if err != nil {
 		s.logger.Errorf("[Service][ListLowStockItems] failed to fetch low stock items: %v", err)
-		return nil, common.ErrInternal(err.Error())
+		return nil, common.ErrInternal("failed to fetch low stock items")
 	}
 
 	return items, nil

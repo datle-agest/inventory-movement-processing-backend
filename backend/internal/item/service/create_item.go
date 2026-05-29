@@ -14,6 +14,10 @@ func (s *itemService) CreateItem(ctx context.Context, data entity.CreateItemRequ
 		CurrentStock:      data.CurrentStock,
 		LowStockThreshold: data.LowStockThreshold,
 	}
+
+	if err := item.Validate(); err != nil {
+		return nil, common.ErrBadRequest(err.Error())
+	}
 	createdItem, err := s.repo.CreateItem(ctx, item)
 	if err != nil {
 		if errors.Is(err, entity.ErrItemDuplicated) {
