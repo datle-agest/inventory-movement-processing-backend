@@ -29,12 +29,17 @@ type ProcessResult struct {
 	ErrorReason string        `json:"error_reason,omitempty" example:"item not found"`
 }
 
+type ImportBatchFailedInfo struct {
+	TotalFailed     int    `json:"total_failed"`
+	ErrorReportFile string `json:"error_report_file"`
+}
+
 type ImportBatchResult struct {
-	Total      int             `json:"total" example:"1000"`
-	Success    int             `json:"success" example:"999"`
-	Rejected   int             `json:"rejected" example:"1"`
-	Duplicate  int             `json:"duplicate" example:"0"`
-	FailedRows []ProcessResult `json:"failed_rows"`
+	Total      int                   `json:"total" example:"1000"`
+	Success    int                   `json:"success" example:"999"`
+	Rejected   int                   `json:"rejected" example:"1"`
+	Duplicate  int                   `json:"duplicate" example:"0"`
+	FailedInfo ImportBatchFailedInfo `json:"failed_info"`
 }
 
 // NewMovementFromCSV maps a CsvMovementRow to a Movement entity.
