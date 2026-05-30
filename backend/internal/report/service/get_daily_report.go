@@ -110,8 +110,25 @@ func (s *reportService) GetDailyReport(
 		if acquired && isStale {
 			s.logger.Infof("Generating daily summary for %s", dateStr)
 
-			if err := s.GenerateDailySummary(ctx, date); err != nil {
-				s.logger.Errorf("GenerateDailySummary failed for %s: %v", dateStr, err)
+			genCtx := ctx
+			var cancel context.CancelFunc
+			if s.cacheConfig.GenerationTimeout > 0 {
+				genCtx, cancel = context.WithTimeout(ctx, s.cacheConfig.GenerationTimeout)
+				defer cancel()
+			}
+
+			if err := s.GenerateDailySummary(genCtx, date); err != nil {
+				if genCtx.Err() == context.DeadlineExceeded {
+					s.logger.Errorf(
+						"GenerateDailySummary timed out after %s for %s",
+						s.cacheConfig.GenerationTimeout,
+						dateStr,
+					)
+				} else if genCtx.Err() == context.Canceled {
+					s.logger.Errorf("GenerateDailySummary canceled for %s: %v", dateStr, err)
+				} else {
+					s.logger.Errorf("GenerateDailySummary failed for %s: %v", dateStr, err)
+				}
 				return nil, common.ErrInternal("failed to process daily summary")
 			}
 
