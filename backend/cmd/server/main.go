@@ -41,7 +41,6 @@ import (
 // @BasePath /api
 // @schemes http https
 
-
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
@@ -63,6 +62,11 @@ func newServiceContext() sctx.ServiceContext {
 
 func setupRouter(serviceCtx sctx.ServiceContext, router *gin.Engine) {
 	router.Use(gin.Logger(), gin.Recovery(), middleware.Recovery(serviceCtx))
+	router.Use(middleware.ResponseTime())
+	router.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Expose-Headers", "X-Response-Time")
+		c.Next()
+	})
 	cfg := serviceCtx.MustGet(common.KeyComponentConfig).(middleware.Config)
 	router.Use(middleware.AuthByRole(cfg))
 	// Swagger endpoint
