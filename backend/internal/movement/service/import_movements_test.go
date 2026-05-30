@@ -87,8 +87,8 @@ func TestImportBatch_EmptyCSV_ShouldReturnZeroTotals(t *testing.T) {
 		t.Errorf("expected all counts=0, got %+v", result)
 	}
 
-	if len(result.FailedRows) != 0 {
-		t.Errorf("expected no FailedRows, got %d", len(result.FailedRows))
+	if result.FailedInfo.TotalFailed != 0 {
+		t.Errorf("expected no FailedRows, got %d", result.FailedInfo.TotalFailed)
 	}
 }
 
@@ -139,8 +139,8 @@ func TestImportBatch_AllValidRows_ShouldReturnAllSuccess(t *testing.T) {
 		t.Errorf("expected Duplicate=0, got %d", result.Duplicate)
 	}
 
-	if len(result.FailedRows) != 0 {
-		t.Errorf("expected no FailedRows, got %d", len(result.FailedRows))
+	if result.FailedInfo.TotalFailed != 0 {
+		t.Errorf("expected no FailedRows, got %d", result.FailedInfo.TotalFailed)
 	}
 }
 
@@ -202,12 +202,8 @@ func TestImportBatch_DuplicateExternalID_ShouldCountDuplicates(t *testing.T) {
 		t.Errorf("expected Rejected=0, got %d", result.Rejected)
 	}
 
-	if len(result.FailedRows) != 1 {
-		t.Fatalf("expected 1 FailedRow, got %d", len(result.FailedRows))
-	}
-
-	if result.FailedRows[0].Status != entity.StatusDuplicate {
-		t.Errorf("expected FailedRows[0].Status=StatusDuplicate, got %v", result.FailedRows[0].Status)
+	if result.FailedInfo.TotalFailed != 1 {
+		t.Fatalf("expected 1 TotalFailed, got %d", result.FailedInfo.TotalFailed)
 	}
 }
 
@@ -267,16 +263,8 @@ func TestImportBatch_InsufficientStock_ShouldCountRejected(t *testing.T) {
 		t.Errorf("expected Duplicate=0, got %d", result.Duplicate)
 	}
 
-	if len(result.FailedRows) != 1 {
-		t.Fatalf("expected 1 FailedRow, got %d", len(result.FailedRows))
-	}
-
-	if result.FailedRows[0].ExternalID != "EXT-REJ" {
-		t.Errorf("expected FailedRows[0].ExternalID='EXT-REJ', got '%s'", result.FailedRows[0].ExternalID)
-	}
-
-	if result.FailedRows[0].Status != entity.StatusRejected {
-		t.Errorf("expected FailedRows[0].Status=StatusRejected, got %v", result.FailedRows[0].Status)
+	if result.FailedInfo.TotalFailed != 1 {
+		t.Fatalf("expected 1 TotalFailed, got %d", result.FailedInfo.TotalFailed)
 	}
 }
 
@@ -334,8 +322,8 @@ func TestImportBatch_InvalidQuantity_ShouldBeRejectedByValidation(t *testing.T) 
 		t.Errorf("expected Rejected=1, got %d", result.Rejected)
 	}
 
-	if result.FailedRows[0].Status != entity.StatusRejected {
-		t.Errorf("expected StatusRejected, got %v", result.FailedRows[0].Status)
+	if result.FailedInfo.TotalFailed != 1 {
+		t.Fatalf("expected 1 TotalFailed, got %d", result.FailedInfo.TotalFailed)
 	}
 }
 
@@ -404,8 +392,8 @@ func TestImportBatch_MixedResults_ShouldSummarizeCorrectly(t *testing.T) {
 		t.Errorf("expected Rejected=1, got %d", result.Rejected)
 	}
 
-	if len(result.FailedRows) != 2 {
-		t.Errorf("expected 2 FailedRows, got %d", len(result.FailedRows))
+	if result.FailedInfo.TotalFailed != 2 {
+		t.Errorf("expected 2 TotalFailed, got %d", result.FailedInfo.TotalFailed)
 	}
 }
 

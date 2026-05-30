@@ -2,10 +2,12 @@ package service
 
 import (
 	"encoding/csv"
+	"fmt"
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/internal/movement/entity"
 	"io"
 	"mime/multipart"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -146,4 +148,43 @@ func (s *service) parseCSV(src io.Reader) ([]entity.CsvMovementRow, []entity.Pro
 		rows = append(rows, csvRow)
 	}
 	return rows, failedRows, nil
+}
+
+func (s *service) writeErrorReport(jobID string, rows []entity.ProcessResult) (string, error) {
+	dir := os.Getenv("FAILED_REPORT_DIR")
+	if dir == "" {
+		dir = "storage/failed-reports"
+	}
+
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+
+	filePath := fmt.Sprintf("%s/%s.csv", dir, jobID)
+	f, err := os.Create(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	writer := csv.NewWriter(f)
+	defer writer.Flush()
+
+	if err := writer.Write([]string{"row_index", "external_id", "status", "error_reason"}); err != nil {
+		return "", err
+	}
+
+	for _, r := range rows {
+		row := []string{
+			fmt.Sprintf("%d", r.RowIndex),
+			r.ExternalID,
+			string(r.Status),
+			r.ErrorReason,
+		}
+		if err := writer.Write(row); err != nil {
+			return "", err
+		}
+	}
+
+	return filePath, nil
 }

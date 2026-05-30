@@ -3,11 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"inventory-movement-processing/common"
 	"inventory-movement-processing/internal/movement/entity"
 	"mime/multipart"
 	"sort"
 	"sync"
+	"time"
 )
 
 func (s *service) ImportBatch(ctx context.Context, file *multipart.FileHeader) (entity.ImportBatchResult, error) {
@@ -85,7 +87,7 @@ func (s *service) runImportWorkers(ctx context.Context, grouped map[int32][]enti
 		wg.Add(1)
 		s.workerPool.Submit(func() {
 			defer wg.Done()
-			
+
 			results := s.ProcessItemGroup(ctx, id, rows)
 			for _, res := range results {
 				resultCh <- res
@@ -135,11 +137,25 @@ func (s *service) summarizeResults(
 		}
 	}
 
+	var failedInfo entity.ImportBatchFailedInfo
+	if len(failedRows) > 0 {
+		jobID := fmt.Sprintf("%d", time.Now().UnixNano())
+		filePath, err := s.writeErrorReport(jobID, failedRows)
+		if err != nil {
+			s.logger.Warnf("[Service][summarizeResults] failed to write error report: %v", err)
+			filePath = ""
+		}
+		failedInfo = entity.ImportBatchFailedInfo{
+			TotalFailed:     rejected + duplicate,
+			ErrorReportFile: filePath,
+		}
+	}
+
 	return entity.ImportBatchResult{
 		Total:      total,
 		Success:    success,
 		Rejected:   rejected,
 		Duplicate:  duplicate,
-		FailedRows: failedRows,
+		FailedInfo: failedInfo,
 	}
 }
