@@ -36,6 +36,11 @@ type ReportCacheConfig struct {
 	// Should be longer than the expected GenerateDailySummary execution time.
 	GenerationLockTTL time.Duration
 
+	// GenerationTimeout is the maximum time allowed for GenerateDailySummary.
+	// If 0, the caller's context is used as-is (no additional timeout).
+	// Keep this <= GenerationLockTTL so the lock doesn't expire while work is still running.
+	GenerationTimeout time.Duration
+
 	// CacheLimit is the maximum number of top-active items stored in cache per day.
 	// Must be >= the maximum `limit` value any caller can request, otherwise
 	// responses will be silently truncated.
@@ -57,6 +62,7 @@ func DefaultReportCacheConfig() ReportCacheConfig {
 		PastDayPhysicalTTL:      24 * time.Hour,
 		EmptyDayPhysicalTTL:     6 * time.Hour,
 		GenerationLockTTL:       15 * time.Second,
+		GenerationTimeout:       10 * time.Second,
 		CacheLimit:              50,
 	}
 }
