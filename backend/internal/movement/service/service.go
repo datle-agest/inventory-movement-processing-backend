@@ -23,6 +23,7 @@ type movementRepository interface {
 }
 
 type itemService interface {
+	GetItem(ctx context.Context, id int32) (*itemEntity.Item, error) 
 	AdjustStock(ctx context.Context, itemID int32, quantityChange int32) error
 	GetItemForUpdate(ctx context.Context, id int32) (*itemEntity.Item, error)
 	UpdateStock(ctx context.Context, itemID int32, newStock int32) error

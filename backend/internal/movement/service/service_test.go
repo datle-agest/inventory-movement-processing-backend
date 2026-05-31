@@ -55,6 +55,7 @@ type mockItemService struct {
 	adjustStockFn      func(ctx context.Context, itemID int32, quantityChange int32) error
 	getItemForUpdateFn func(ctx context.Context, id int32) (*itemEntity.Item, error)
 	updateStockFn      func(ctx context.Context, itemID int32, newStock int32) error
+	getItemFn          func(ctx context.Context, id int32) (*itemEntity.Item, error)
 }
 
 func (m *mockItemService) AdjustStock(ctx context.Context, itemID int32, quantityChange int32) error {
@@ -71,6 +72,13 @@ func (m *mockItemService) UpdateStock(ctx context.Context, itemID int32, newStoc
 		return m.updateStockFn(ctx, itemID, newStock)
 	}
 	return nil
+}
+
+func (m *mockItemService) GetItem(ctx context.Context, id int32) (*itemEntity.Item, error) {
+    if m.getItemFn != nil {
+        return m.getItemFn(ctx, id)
+    }
+    return nil, nil
 }
 
 // --- mockTxManager — implements common.TxManager ---

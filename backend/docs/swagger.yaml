@@ -12,6 +12,25 @@ definitions:
         $ref: '#/definitions/core.Pagination'
       result: {}
     type: object
+  core.APIResponseNoPage:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      message:
+        example: success
+        type: string
+      result: {}
+    type: object
+  core.APIResponseNoResult:
+    properties:
+      code:
+        example: SUCCESS
+        type: string
+      message:
+        example: success
+        type: string
+    type: object
   core.ErrResponseBadRequest:
     properties:
       code:
@@ -84,6 +103,26 @@ definitions:
           $ref: '#/definitions/entity.DailyItemSummary'
         type: array
     type: object
+  entity.CreateItemRequest:
+    properties:
+      current_stock:
+        minimum: 0
+        type: integer
+      low_stock_threshold:
+        minimum: 0
+        type: integer
+      name:
+        maxLength: 100
+        minLength: 2
+        type: string
+      sku:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - name
+    - sku
+    type: object
   entity.DailyItemSummary:
     properties:
       created_at:
@@ -111,15 +150,20 @@ definitions:
         example: "2024-01-15T10:30:00Z"
         type: string
     type: object
+  entity.ImportBatchFailedInfo:
+    properties:
+      error_report_file:
+        type: string
+      total_failed:
+        type: integer
+    type: object
   entity.ImportBatchResult:
     properties:
       duplicate:
         example: 0
         type: integer
-      failed_rows:
-        items:
-          $ref: '#/definitions/entity.ProcessResult'
-        type: array
+      failed_info:
+        $ref: '#/definitions/entity.ImportBatchFailedInfo'
       rejected:
         example: 1
         type: integer
@@ -199,36 +243,6 @@ definitions:
     - MovementTypeIn
     - MovementTypeOut
     - MovementTypeAdjust
-  entity.ProcessResult:
-    properties:
-      error_reason:
-        example: item not found
-        type: string
-      external_id:
-        example: TXN-120017
-        type: string
-      row_index:
-        example: 18
-        type: integer
-      status:
-        allOf:
-        - $ref: '#/definitions/entity.ProcessStatus'
-        enum:
-        - accepted
-        - rejected
-        - duplicate
-        example: rejected
-    type: object
-  entity.ProcessStatus:
-    enum:
-    - accepted
-    - rejected
-    - duplicate
-    type: string
-    x-enum-varnames:
-    - StatusAccepted
-    - StatusRejected
-    - StatusDuplicate
 host: localhost:3000
 info:
   contact:
@@ -337,14 +351,16 @@ paths:
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "200":
+          description: OK
           schema:
             allOf:
             - $ref: '#/definitions/core.APIResponse'
             - properties:
                 result:
-                  $ref: '#/definitions/entity.Item'
+                  items:
+                    $ref: '#/definitions/entity.Item'
+                  type: array
               type: object
         "400":
           description: Bad Request
@@ -372,19 +388,14 @@ paths:
         name: item
         required: true
         schema:
-          $ref: '#/definitions/entity.Item'
+          $ref: '#/definitions/entity.CreateItemRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            allOf:
-            - $ref: '#/definitions/core.APIResponse'
-            - properties:
-                result:
-                  $ref: '#/definitions/entity.Item'
-              type: object
+            $ref: '#/definitions/core.APIResponseNoResult'
         "400":
           description: Bad Request
           schema:
@@ -421,7 +432,7 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/core.APIResponse'
+            - $ref: '#/definitions/core.APIResponseNoPage'
             - properties:
                 result:
                   $ref: '#/definitions/entity.Item'

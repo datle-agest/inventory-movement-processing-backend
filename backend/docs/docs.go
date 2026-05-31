@@ -171,8 +171,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
@@ -182,7 +182,10 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "result": {
-                                            "$ref": "#/definitions/entity.Item"
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/entity.Item"
+                                            }
                                         }
                                     }
                                 }
@@ -227,7 +230,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/entity.Item"
+                            "$ref": "#/definitions/entity.CreateItemRequest"
                         }
                     }
                 ],
@@ -235,19 +238,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/core.APIResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "result": {
-                                            "$ref": "#/definitions/entity.Item"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/core.APIResponseNoResult"
                         }
                     },
                     "400": {
@@ -304,7 +295,7 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/core.APIResponse"
+                                    "$ref": "#/definitions/core.APIResponseNoPage"
                                 },
                                 {
                                     "type": "object",
@@ -505,6 +496,33 @@ const docTemplate = `{
                 "result": {}
             }
         },
+        "core.APIResponseNoPage": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "SUCCESS"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "success"
+                },
+                "result": {}
+            }
+        },
+        "core.APIResponseNoResult": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "SUCCESS"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
         "core.ErrResponseBadRequest": {
             "type": "object",
             "properties": {
@@ -603,6 +621,33 @@ const docTemplate = `{
                 }
             }
         },
+        "entity.CreateItemRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "sku"
+            ],
+            "properties": {
+                "current_stock": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "low_stock_threshold": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "sku": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 3
+                }
+            }
+        },
         "entity.DailyItemSummary": {
             "type": "object",
             "properties": {
@@ -640,6 +685,17 @@ const docTemplate = `{
                 }
             }
         },
+        "entity.ImportBatchFailedInfo": {
+            "type": "object",
+            "properties": {
+                "error_report_file": {
+                    "type": "string"
+                },
+                "total_failed": {
+                    "type": "integer"
+                }
+            }
+        },
         "entity.ImportBatchResult": {
             "type": "object",
             "properties": {
@@ -647,11 +703,8 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 0
                 },
-                "failed_rows": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entity.ProcessResult"
-                    }
+                "failed_info": {
+                    "$ref": "#/definitions/entity.ImportBatchFailedInfo"
                 },
                 "rejected": {
                     "type": "integer",
@@ -761,49 +814,6 @@ const docTemplate = `{
                 "MovementTypeIn",
                 "MovementTypeOut",
                 "MovementTypeAdjust"
-            ]
-        },
-        "entity.ProcessResult": {
-            "type": "object",
-            "properties": {
-                "error_reason": {
-                    "type": "string",
-                    "example": "item not found"
-                },
-                "external_id": {
-                    "type": "string",
-                    "example": "TXN-120017"
-                },
-                "row_index": {
-                    "type": "integer",
-                    "example": 18
-                },
-                "status": {
-                    "enum": [
-                        "accepted",
-                        "rejected",
-                        "duplicate"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/entity.ProcessStatus"
-                        }
-                    ],
-                    "example": "rejected"
-                }
-            }
-        },
-        "entity.ProcessStatus": {
-            "type": "string",
-            "enum": [
-                "accepted",
-                "rejected",
-                "duplicate"
-            ],
-            "x-enum-varnames": [
-                "StatusAccepted",
-                "StatusRejected",
-                "StatusDuplicate"
             ]
         }
     },

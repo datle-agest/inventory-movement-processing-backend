@@ -13,6 +13,12 @@ func (s *service) GetMovementsByItemID(ctx context.Context, itemId int, paging *
 		return nil, common.ErrBadRequest("invalid item id for history lookup")
 	}
 
+	_, err := s.itemService.GetItem(ctx, int32(itemId))
+	if err != nil {
+		s.logger.Warnf("[Service][GetMovementsByItemID] item not found: %d", itemId)
+		return nil, err
+	}
+
 	movements, err := s.movementRepo.GetMovementsByItemID(ctx, itemId, paging)
 	if err != nil {
 		s.logger.Errorf("[Service][GetMovementsByItemID] failed to fetch movements for item id %d: %v", itemId, err)
