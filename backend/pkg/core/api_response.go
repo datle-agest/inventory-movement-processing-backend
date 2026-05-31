@@ -9,11 +9,29 @@ type APIResponse struct {
 	Pagination *Pagination `json:"pagination,omitempty"`
 }
 
+type APIResponseNoPage struct {
+	Code    string      `json:"code"             example:"SUCCESS"`
+	Message string      `json:"message,omitempty" example:"success"`
+	Result  interface{} `json:"result,omitempty"`
+}
+
+type APIResponseNoResult struct {
+    Code    string `json:"code"              example:"SUCCESS"`
+    Message string `json:"message,omitempty" example:"success"`
+}
+
 func Success(data interface{}) *APIResponse {
 	return &APIResponse{
 		Code:   common.CodeSuccess,
 		Result: data,
 	}
+}
+
+func SuccessMessageNoResult(message string) *APIResponseNoResult {
+    return &APIResponseNoResult{
+        Code:    common.CodeSuccess,
+        Message: message,
+    }
 }
 
 func SuccessWithMessage(

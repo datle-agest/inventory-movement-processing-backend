@@ -16,8 +16,8 @@ import (
 // @Tags Items
 // @Accept json
 // @Produce json
-// @Param item body entity.Item true "Product registration details including SKU, name, initial stock, and safety threshold."
-// @Success 201 {object} core.APIResponse{result=entity.Item}
+// @Param item body entity.CreateItemRequest true "Product registration details including SKU, name, initial stock, and safety threshold."
+// @Success 201 {object} core.APIResponseNoResult
 // @Failure 400 {object} core.ErrResponseBadRequest
 // @Failure 409 {object} core.ErrResponseItemConflict
 // @Failure 500 {object} core.ErrResponseInternal
@@ -34,7 +34,7 @@ func (hdl handler) CreateItem() gin.HandlerFunc {
 			return
 		}
 
-		createdItem, err := hdl.service.CreateItem(c.Request.Context(), item)
+		_, err := hdl.service.CreateItem(c.Request.Context(), item)
 
 		if err != nil {
 			core.WriteError(c, err)
@@ -44,7 +44,7 @@ func (hdl handler) CreateItem() gin.HandlerFunc {
 		c.JSON(
 			http.StatusCreated,
 			core.SuccessWithMessage(
-				createdItem,
+				nil,
 				"item created successfully",
 			),
 		)

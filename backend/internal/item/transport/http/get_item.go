@@ -17,7 +17,7 @@ import (
 // @Accept json
 // @Produce json
 // @Param id path int true "Unique database ID of the inventory item"
-// @Success 200 {object} core.APIResponse{result=entity.Item}
+// @Success 200 {object} core.APIResponseNoPage{result=entity.Item}
 // @Failure 400 {object} core.ErrResponseBadRequest
 // @Failure 404 {object} core.ErrResponseItemNotFound
 // @Failure 500 {object} core.ErrResponseInternal

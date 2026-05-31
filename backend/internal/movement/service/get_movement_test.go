@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	itemEntity "inventory-movement-processing/internal/item/entity"
 	movementEntity "inventory-movement-processing/internal/movement/entity"
 	"inventory-movement-processing/pkg/core"
 	"strings"
@@ -52,9 +53,16 @@ func TestGetMovementsByItemID_RepositoryError_ShouldReturnInternalError(t *testi
 			return nil, dbErr
 		},
 	}
+
+	mockItem := &mockItemService{
+		getItemFn: func(ctx context.Context, id int32) (*itemEntity.Item, error) {
+			return &itemEntity.Item{}, nil
+		},
+	}
+
 	mockLog := &mockLogger{}
 
-	svc := newMovementService(mockRepo, nil, nil, nil, mockLog)
+	svc := newMovementService(mockRepo, mockItem, nil, nil, mockLog)
 
 	result, err := svc.GetMovementsByItemID(context.Background(), targetItemID, paging)
 
@@ -100,9 +108,16 @@ func TestGetMovementsByItemID_Success_ShouldReturnMovementsList(t *testing.T) {
 			return expectedMovements, nil
 		},
 	}
+
+	mockItem := &mockItemService{
+		getItemFn: func(ctx context.Context, id int32) (*itemEntity.Item, error) {
+			return &itemEntity.Item{}, nil
+		},
+	}
+
 	mockLog := &mockLogger{}
 
-	svc := newMovementService(mockRepo, nil, nil, nil, mockLog)
+	svc := newMovementService(mockRepo, mockItem, nil, nil, mockLog)
 
 	result, err := svc.GetMovementsByItemID(context.Background(), targetItemID, paging)
 
