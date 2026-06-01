@@ -15,5 +15,10 @@ func RegisterMovementRoutes(serviceCtx sctx.ServiceContext, r *gin.RouterGroup) 
 
 	movements := r.Group("/inventory-movements")
 	movements.Use(middleware.AuthByRole(cfg, "storekeeper", "manager"))
-	movements.POST("/import", h.ImportBatch())
+	// movements.POST("/import", h.ImportBatch())
+
+	movements.POST("/import",
+		middleware.LimitCSVUpload(5*1024*1024),
+		h.ImportBatch(),
+	)
 }
