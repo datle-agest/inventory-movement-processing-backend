@@ -449,13 +449,13 @@ const docTemplate = `{
                         "schema": {
                             "allOf": [
                                 {
-                                    "$ref": "#/definitions/core.APIResponse"
+                                    "$ref": "#/definitions/core.APIResponseNoPage"
                                 },
                                 {
                                     "type": "object",
                                     "properties": {
                                         "result": {
-                                            "$ref": "#/definitions/entity.CachedReport"
+                                            "$ref": "#/definitions/entity.TopActiveItemsResult"
                                         }
                                     }
                                 }
@@ -602,22 +602,6 @@ const docTemplate = `{
                 "total": {
                     "type": "integer",
                     "example": 100
-                }
-            }
-        },
-        "entity.CachedReport": {
-            "type": "object",
-            "properties": {
-                "generated_at": {
-                    "description": "GeneratedAt acts as a Logical TTL marker. It enables:\n1. Graceful Degradation: If the DB is down, we can fallback to serving slightly stale data instead of returning a 500 error.\n2. Cache Stampede Prevention: Allows implementing the Stale-While-Revalidate pattern when multiple requests hit an expired cache.\n3. Observability: Provides exact snapshot timing for debugging purposes.",
-                    "type": "string",
-                    "example": "2026-05-22T08:00:00Z"
-                },
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entity.DailyItemSummary"
-                    }
                 }
             }
         },
@@ -815,6 +799,23 @@ const docTemplate = `{
                 "MovementTypeOut",
                 "MovementTypeAdjust"
             ]
+        },
+        "entity.TopActiveItemsResult": {
+            "type": "object",
+            "properties": {
+                "low_stock_items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.Item"
+                    }
+                },
+                "top_items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.DailyItemSummary"
+                    }
+                }
+            }
         }
     },
     "securityDefinitions": {

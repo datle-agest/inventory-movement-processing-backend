@@ -19,7 +19,7 @@ import (
 // @Produce json
 // @Param date  query string false "Target date for the report in YYYY-MM-DD format. Defaults to the current date if omitted."
 // @Param limit query int    false "Maximum number of top active items to retrieve. Must be a strictly positive integer. Default is 5."
-// @Success 200 {object} core.APIResponse{result=entity.CachedReport}
+// @Success 200 {object} core.APIResponseNoPage{result=entity.TopActiveItemsResult}
 // @Failure 400 {object} core.ErrResponseBadRequest
 // @Failure 500 {object} core.ErrResponseInternal
 // @Router /v1/reports/daily [get]

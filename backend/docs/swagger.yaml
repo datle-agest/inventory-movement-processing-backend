@@ -88,21 +88,6 @@ definitions:
         example: 100
         type: integer
     type: object
-  entity.CachedReport:
-    properties:
-      generated_at:
-        description: |-
-          GeneratedAt acts as a Logical TTL marker. It enables:
-          1. Graceful Degradation: If the DB is down, we can fallback to serving slightly stale data instead of returning a 500 error.
-          2. Cache Stampede Prevention: Allows implementing the Stale-While-Revalidate pattern when multiple requests hit an expired cache.
-          3. Observability: Provides exact snapshot timing for debugging purposes.
-        example: "2026-05-22T08:00:00Z"
-        type: string
-      items:
-        items:
-          $ref: '#/definitions/entity.DailyItemSummary'
-        type: array
-    type: object
   entity.CreateItemRequest:
     properties:
       current_stock:
@@ -243,6 +228,17 @@ definitions:
     - MovementTypeIn
     - MovementTypeOut
     - MovementTypeAdjust
+  entity.TopActiveItemsResult:
+    properties:
+      low_stock_items:
+        items:
+          $ref: '#/definitions/entity.Item'
+        type: array
+      top_items:
+        items:
+          $ref: '#/definitions/entity.DailyItemSummary'
+        type: array
+    type: object
 host: localhost:3000
 info:
   contact:
@@ -535,10 +531,10 @@ paths:
           description: OK
           schema:
             allOf:
-            - $ref: '#/definitions/core.APIResponse'
+            - $ref: '#/definitions/core.APIResponseNoPage'
             - properties:
                 result:
-                  $ref: '#/definitions/entity.CachedReport'
+                  $ref: '#/definitions/entity.TopActiveItemsResult'
               type: object
         "400":
           description: Bad Request
