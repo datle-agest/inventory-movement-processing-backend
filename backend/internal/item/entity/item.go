@@ -17,9 +17,6 @@ type ItemFilter struct {
 	Name       *string `form:"name"`
 	SKU        *string `form:"sku"`
 	LowStock   *bool   `form:"low_stock"`
-	OutOfStock *bool   `form:"out_of_stock"`
-	MinQty     *int32  `form:"min_qty"`
-	MaxQty     *int32  `form:"max_qty"`
 	SortBy     string  `form:"sort_by"`
 	SortOrder  string  `form:"sort_order"`
 }
