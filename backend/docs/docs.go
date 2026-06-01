@@ -612,10 +612,6 @@ const docTemplate = `{
                 "sku"
             ],
             "properties": {
-                "current_stock": {
-                    "type": "integer",
-                    "minimum": 0
-                },
                 "low_stock_threshold": {
                     "type": "integer",
                     "minimum": 0

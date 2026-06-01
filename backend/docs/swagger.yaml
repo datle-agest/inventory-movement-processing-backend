@@ -90,9 +90,6 @@ definitions:
     type: object
   entity.CreateItemRequest:
     properties:
-      current_stock:
-        minimum: 0
-        type: integer
       low_stock_threshold:
         minimum: 0
         type: integer
