@@ -313,18 +313,6 @@ paths:
         in: query
         name: low_stock
         type: boolean
-      - description: Filter for items with zero quantity
-        in: query
-        name: out_of_stock
-        type: boolean
-      - description: Filter items with quantity greater than or equal to this value
-        in: query
-        name: min_qty
-        type: integer
-      - description: Filter items with quantity less than or equal to this value
-        in: query
-        name: max_qty
-        type: integer
       - description: Field name to sort by (e.g., name, sku, current_stock)
         in: query
         name: sort_by

@@ -128,24 +128,6 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
-                        "type": "boolean",
-                        "description": "Filter for items with zero quantity",
-                        "name": "out_of_stock",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Filter items with quantity greater than or equal to this value",
-                        "name": "min_qty",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Filter items with quantity less than or equal to this value",
-                        "name": "max_qty",
-                        "in": "query"
-                    },
-                    {
                         "type": "string",
                         "description": "Field name to sort by (e.g., name, sku, current_stock)",
                         "name": "sort_by",

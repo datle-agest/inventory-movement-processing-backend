@@ -33,24 +33,6 @@ func buildFilterScopes(filter *entity.ItemFilter) []func(*gorm.DB) *gorm.DB {
 		})
 	}
 
-	if filter.OutOfStock != nil && *filter.OutOfStock {
-		scopes = append(scopes, func(db *gorm.DB) *gorm.DB {
-			return db.Where("current_stock = 0")
-		})
-	}
-
-	if filter.MinQty != nil {
-		scopes = append(scopes, func(db *gorm.DB) *gorm.DB {
-			return db.Where("current_stock >= ?", *filter.MinQty)
-		})
-	}
-
-	if filter.MaxQty != nil {
-		scopes = append(scopes, func(db *gorm.DB) *gorm.DB {
-			return db.Where("current_stock <= ?", *filter.MaxQty)
-		})
-	}
-
 	return scopes
 }
 
