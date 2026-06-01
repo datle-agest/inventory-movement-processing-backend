@@ -11,7 +11,7 @@ func (s *itemService) CreateItem(ctx context.Context, data entity.CreateItemRequ
 	item := entity.Item{
 		Name:              data.Name,
 		SKU:               data.SKU,
-		CurrentStock:      data.CurrentStock,
+		CurrentStock:      0,
 		LowStockThreshold: data.LowStockThreshold,
 	}
 

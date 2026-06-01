@@ -13,9 +13,8 @@ import (
 // =========================================================================
 func TestCreateItem_DuplicateSKU_ShouldReturnConflict(t *testing.T) {
 	input := entity.CreateItemRequest{
-		Name:         "Laptop Dell XPS 15",
-		SKU:          "SKU-DUP-001",
-		CurrentStock: 50,
+		Name: "Laptop Dell XPS 15",
+		SKU:  "SKU-DUP-001",
 	}
 
 	mockRepo := &mockItemRepo{
@@ -46,9 +45,8 @@ func TestCreateItem_DuplicateSKU_ShouldReturnConflict(t *testing.T) {
 // =========================================================================
 func TestCreateItem_RepositoryError_ShouldReturnInternalError(t *testing.T) {
 	input := entity.CreateItemRequest{
-		Name:         "Mechanical Keyboard",
-		SKU:          "SKU-KEY-999",
-		CurrentStock: 5,
+		Name: "Mechanical Keyboard",
+		SKU:  "SKU-KEY-999",
 	}
 
 	dbErr := errors.New("connection timeout or database down")
@@ -84,7 +82,6 @@ func TestCreateItem_Success_ShouldReturnCreatedItem(t *testing.T) {
 	input := entity.CreateItemRequest{
 		Name:              "Sony WH-1000XM4",
 		SKU:               "SKU-SONY-04",
-		CurrentStock:      100,
 		LowStockThreshold: 15,
 	}
 
@@ -119,10 +116,6 @@ func TestCreateItem_Success_ShouldReturnCreatedItem(t *testing.T) {
 		t.Errorf("expected SKU='%s', got '%s'", input.SKU, result.SKU)
 	}
 
-	if result.CurrentStock != input.CurrentStock {
-		t.Errorf("expected CurrentStock=%d, got %d", input.CurrentStock, result.CurrentStock)
-	}
-
 	if result.LowStockThreshold != input.LowStockThreshold {
 		t.Errorf("expected LowStockThreshold=%d, got %d", input.LowStockThreshold, result.LowStockThreshold)
 	}
@@ -135,7 +128,6 @@ func TestCreateItem_Success_ShouldMapRequestFieldsCorrectly(t *testing.T) {
 	input := entity.CreateItemRequest{
 		Name:              "Standing Desk",
 		SKU:               "SKU-DESK-01",
-		CurrentStock:      20,
 		LowStockThreshold: 5,
 	}
 
@@ -164,10 +156,6 @@ func TestCreateItem_Success_ShouldMapRequestFieldsCorrectly(t *testing.T) {
 
 	if capturedItem.SKU != input.SKU {
 		t.Errorf("expected captured SKU='%s', got '%s'", input.SKU, capturedItem.SKU)
-	}
-
-	if capturedItem.CurrentStock != input.CurrentStock {
-		t.Errorf("expected captured CurrentStock=%d, got %d", input.CurrentStock, capturedItem.CurrentStock)
 	}
 
 	if capturedItem.LowStockThreshold != input.LowStockThreshold {
