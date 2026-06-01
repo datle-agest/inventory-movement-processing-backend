@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	v1 "inventory-movement-processing/cmd/server/routes/v1"
 	"inventory-movement-processing/common"
+	"inventory-movement-processing/composer"
 	_ "inventory-movement-processing/docs"
 	"inventory-movement-processing/pkg/components/configc"
+	"inventory-movement-processing/pkg/components/cronc"
 	"inventory-movement-processing/pkg/components/ginc"
 	"inventory-movement-processing/pkg/components/ginc/middleware"
 	"inventory-movement-processing/pkg/components/gormc"
@@ -18,6 +21,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -45,8 +49,14 @@ import (
 // @in header
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token. Example: "Bearer eyJhbGci..."
+
 type DBProvider interface {
 	GetDB() *gorm.DB
+}
+
+// CronConfig là interface để lấy cron schedule từ config component.
+type CronConfig interface {
+	GetDailyCronSchedule() string
 }
 
 func newServiceContext() sctx.ServiceContext {
@@ -57,6 +67,7 @@ func newServiceContext() sctx.ServiceContext {
 		sctx.WithComponent(workerc.NewPool(common.KeyCompWorkerPool, 0, 0)),
 		sctx.WithComponent(gormc.NewGormDB(common.KeyComponentPostgres, "")),
 		sctx.WithComponent(redisc.NewRedis(common.KeyComponentRedis)),
+		sctx.WithComponent(cronc.NewCron(common.KeyComponentCron)),
 	)
 }
 
@@ -69,23 +80,48 @@ func setupRouter(serviceCtx sctx.ServiceContext, router *gin.Engine) {
 	})
 	cfg := serviceCtx.MustGet(common.KeyComponentConfig).(middleware.Config)
 	router.Use(middleware.AuthByRole(cfg))
-	// Swagger endpoint
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
 
 	api := router.Group("/api")
 	v1.Register(serviceCtx, api)
-	// registerV2Routes(serviceCtx, api)
+}
+
+func setupJob(serviceCtx sctx.ServiceContext) {
+	cronComp := serviceCtx.MustGet(common.KeyComponentCron).(cronc.CronComponent)
+	cfg := serviceCtx.MustGet(common.KeyComponentConfig).(CronConfig)
+	logger := serviceCtx.Logger("cron-setup")
+
+	schedule := cfg.GetDailyCronSchedule()
+	logger.Infof("registering daily-inventory-sync schedule=%q", schedule)
+
+	reportSv := composer.ComposeCronJob(serviceCtx)
+
+	if err := cronComp.AddJob(cronc.JobDefinition{
+		Name:     "daily-inventory-sync",
+		Schedule: schedule,
+		Handler: func() {
+			yesterday := time.Now().AddDate(0, 0, -1)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			if err := reportSv.GenerateDailySummary(ctx, yesterday); err != nil {
+				logger.Errorf("daily-inventory-sync failed date=%s err=%v", yesterday.Format("2006-01-02"), err)
+				return
+			}
+			logger.Infof("daily-inventory-sync completed date=%s", yesterday.Format("2006-01-02"))
+		},
+	}); err != nil {
+		log.Fatalf("register cron job: %v", err)
+	}
 }
 
 func main() {
 	printEnv := flag.Bool("print-env", false, "print resolved environment variables")
-
 	runMigrate := flag.Bool("migrate", false, "run database migrations on startup")
-
 	flag.Parse()
 
 	serviceCtx := newServiceContext()
@@ -100,10 +136,11 @@ func main() {
 	}
 	defer serviceCtx.Stop()
 
+	setupJob(serviceCtx)
+
 	if *runMigrate {
 		gormComp := serviceCtx.MustGet(common.KeyComponentPostgres).(DBProvider)
 		db := gormComp.GetDB()
-
 		if err := migrations.RunMigration(db); err != nil {
 			log.Fatalf("AutoMigrate failed on startup: %v", err)
 		}

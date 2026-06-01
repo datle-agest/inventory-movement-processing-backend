@@ -105,5 +105,5 @@ func newService(
 	cfg ReportCacheConfig,
 	log logger.Logger,
 ) *reportService {
-	return NewReportService(rr, mu, ir, cache, cfg, log)
+	return NewReportService(rr, mu, ir, cache, &cfg, log)
 }
