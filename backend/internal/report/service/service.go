@@ -41,7 +41,7 @@ type reportService struct {
 	movementService  movementService
 	itemService      itemService
 	cacheStore       cacheProvider
-	cacheConfig      ReportCacheConfig
+	cacheConfig      *ReportCacheConfig
 	logger           logger.Logger
 	sfGroup          *singleflight.Group
 }
@@ -51,7 +51,7 @@ func NewReportService(
 	movementService movementService,
 	itemService itemService,
 	cacheStore cacheProvider,
-	cacheConfig ReportCacheConfig,
+	cacheConfig *ReportCacheConfig,
 	logger logger.Logger,
 ) *reportService {
 	return &reportService{

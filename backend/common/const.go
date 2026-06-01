@@ -6,4 +6,5 @@ var (
 	KeyCompWorkerPool           = "worker-pool"
 	KeyComponentPostgres        = "postgres"
 	KeyComponentRedis           = "redis"
+	KeyComponentCron            = "cron"
 )
