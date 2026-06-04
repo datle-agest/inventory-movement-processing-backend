@@ -46,7 +46,7 @@ services:
     environment:
       APP_ENV: dev
       LOG_LEVEL: debug
-
+      
       DB_DRIVER: postgres
       DB_DSN: "host=postgres user=postgres password=123456 dbname=imp_db port=5432 sslmode=disable"
 
@@ -61,9 +61,70 @@ services:
       - "3000:3000"
     networks:
       - imp_network
+  
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: prometheus
+    restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - imp_network
+ 
+  loki:
+    image: grafana/loki:3.1.0
+    container_name: loki
+    restart: always
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - imp_network
+ 
+  promtail:
+    image: grafana/promtail:3.1.0
+    container_name: promtail
+    restart: always
+    ports:
+      - "9080:9080"
+    volumes:
+      - ./monitoring/promtail.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./backend/logs:/var/log/backend_logs
+    depends_on:
+      - loki
+    networks:
+      - imp_network
+ 
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: grafana
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - imp_network
+
 
 volumes:
   postgres_data:
+  grafana_data:
+  loki_data:
 
 networks:
   imp_network:

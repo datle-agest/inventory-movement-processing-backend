@@ -72,12 +72,19 @@ func newServiceContext() sctx.ServiceContext {
 }
 
 func setupRouter(serviceCtx sctx.ServiceContext, router *gin.Engine) {
-	router.Use(gin.Logger(), gin.Recovery(), middleware.Recovery(serviceCtx))
+	sysLogger := serviceCtx.Logger("api-audit")
+
+	router.Use(gin.Recovery(), middleware.Recovery(serviceCtx))
+	router.Use(middleware.AuditLog(sysLogger))
+	router.Use(middleware.Metrics())
 	router.Use(middleware.ResponseTime())
 	router.Use(func(c *gin.Context) {
 		c.Header("Access-Control-Expose-Headers", "X-Response-Time")
 		c.Next()
 	})
+
+	router.GET("/metrics", middleware.PrometheusHandler())
+
 	cfg := serviceCtx.MustGet(common.KeyComponentConfig).(middleware.Config)
 	router.Use(middleware.AuthByRole(cfg))
 
