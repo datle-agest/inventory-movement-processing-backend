@@ -16,6 +16,8 @@ WORKDIR /app
 
 COPY . .
 
+RUN apk add --no-cache tzdata 
+
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -o /bin/server ./cmd/server
 
@@ -28,5 +30,5 @@ FROM scratch
 COPY --from=builder /bin/server /server
 COPY --from=builder /bin/migrations /migrations
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo 
 CMD ["/server"]
