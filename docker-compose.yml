@@ -45,8 +45,8 @@ services:
       - redis
     environment:
       APP_ENV: dev
-      LOG_LEVEL: info
-      GINM_MODE: release
+      LOG_LEVEL: debug
+      
       DB_DRIVER: postgres
       DB_DSN: "host=postgres user=postgres password=123456 dbname=imp_db port=5432 sslmode=disable"
 
