@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -38,7 +39,9 @@ func ResponseTime() gin.HandlerFunc {
 		c.Next()
 
 		elapsed := time.Since(start).Milliseconds()
-		fmt.Println(">>> ResponseTime middleware ran:", elapsed, "ms")
+		if os.Getenv("APP_ENV") != "prd"{
+			fmt.Println(">>> ResponseTime middleware ran:", elapsed, "ms")
+		}
 
 		// Set header trước khi thực sự write response
 		rw.ResponseWriter.Header().Set("X-Response-Time", strconv.FormatInt(elapsed, 10)+"ms")

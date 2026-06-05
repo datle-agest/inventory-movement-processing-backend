@@ -44,8 +44,8 @@ services:
       - postgres
       - redis
     environment:
-      APP_ENV: dev
-      LOG_LEVEL: debug
+      APP_ENV: prd
+      LOG_LEVEL: info
       
       DB_DRIVER: postgres
       DB_DSN: "host=postgres user=postgres password=123456 dbname=imp_db port=5432 sslmode=disable"
@@ -93,7 +93,7 @@ services:
     container_name: promtail
     restart: always
     ports:
-      - "9080:9080"
+      - "9080:80"
     volumes:
       - ./monitoring/promtail.yml:/etc/promtail/config.yml
       - /var/run/docker.sock:/var/run/docker.sock

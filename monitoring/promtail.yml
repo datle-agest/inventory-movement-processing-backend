@@ -23,6 +23,11 @@ scrape_configs:
             level: level
             type: type
             user_role: user_role
+            extracted_prefix: prefix
+            extracted_type: type
+      - template:
+          source: final_type
+          template: '{{ if .extracted_type }}{{ .extracted_type }}{{ else }}{{ .extracted_prefix }}{{ end }}'
       - labels:
-          level:
-          type:
+          level: extracted_level
+          type: final_type

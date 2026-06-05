@@ -51,7 +51,7 @@ func (a *appLogger) Activate() error {
 		cfg = zap.NewDevelopmentConfig()
 	} else {
 		cfg = zap.NewProductionConfig()
-		//cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+		cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	}
 
 	cfg.Level = a.atomicLevel
